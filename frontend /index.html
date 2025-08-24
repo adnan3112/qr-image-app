@@ -3,56 +3,188 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Secure QR Image Upload</title>
+    <title>Upload QR Image</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        transition: all 0.3s ease;
+      }
+      body {
+        font-family: "Roboto", sans-serif;
+        background: linear-gradient(135deg, #e0f7fa, #f3e5f5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        padding: 20px;
+        transition: background 0.5s;
+      }
+      body.dark {
+        background: linear-gradient(135deg, #121212, #1f1f1f);
+        color: #fff;
+      }
+
+      .container {
+        background: #fff;
+        max-width: 500px;
+        width: 100%;
+        border-radius: 15px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        padding: 30px;
+        text-align: center;
+        transition: all 0.3s ease;
+      }
+      body.dark .container {
+        background: #1e1e1e;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+      }
+      .container:hover {
+        transform: translateY(-5px);
+      }
+
+      h2 {
+        font-size: 1.8rem;
+        margin-bottom: 20px;
+      }
+      input[type="file"],
+      input[type="password"] {
+        width: 90%;
+        padding: 12px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        font-size: 1rem;
+        outline: none;
+        transition: border-color 0.3s;
+      }
+      body.dark input[type="file"],
+      body.dark input[type="password"] {
+        background: #333;
+        color: #fff;
+        border: 1px solid #555;
+      }
+      input:focus {
+        border-color: #6200ea;
+      }
+
+      button {
+        background-color: #6200ea;
+        color: #fff;
+        border: none;
+        padding: 12px 25px;
+        font-size: 1rem;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background 0.3s, transform 0.2s;
+      }
+      button:hover {
+        background-color: #3700b3;
+        transform: scale(1.05);
+      }
+
+      #error {
+        color: #e53935;
+        margin-top: 15px;
+        font-weight: 500;
+      }
+      #qrcode {
+        margin-top: 20px;
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      .theme-toggle {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        cursor: pointer;
+        background: none;
+        border: 2px solid #6200ea;
+        border-radius: 50%;
+        padding: 8px 12px;
+        font-weight: bold;
+        transition: all 0.3s ease;
+      }
+      .theme-toggle:hover {
+        background-color: #6200ea;
+        color: #fff;
+      }
+
+      @media (max-width: 600px) {
+        .container {
+          padding: 20px;
+        }
+        h2 {
+          font-size: 1.5rem;
+        }
+        input,
+        button {
+          font-size: 0.95rem;
+        }
+      }
+    </style>
   </head>
   <body>
-    <h2>Upload Image & Generate QR</h2>
-    <input type="file" id="fileInput" />
-    <input type="text" id="passwordInput" placeholder="Enter password" />
-    <button onclick="uploadAndGenerate()">Upload & Generate QR</button>
-
-    <div id="qrcode"></div>
-    <p id="error"></p>
+    <button class="theme-toggle" onclick="toggleTheme()">🌙</button>
+    <div class="container">
+      <h2>Upload Image & Generate QR</h2>
+      <input type="file" id="file" />
+      <input type="password" id="password" placeholder="Set a password" />
+      <br />
+      <button onclick="uploadAndGenerate()">Upload & Generate QR</button>
+      <p id="error"></p>
+      <div id="qrcode"></div>
+    </div>
 
     <script>
-      async function uploadAndGenerate() {
-        const fileInput = document.getElementById("fileInput");
-        const passwordInput = document.getElementById("passwordInput");
-        const file = fileInput.files[0];
-        const password = passwordInput.value.trim();
+      function toggleTheme() {
+        document.body.classList.toggle("dark");
+        document.querySelector(".theme-toggle").textContent =
+          document.body.classList.contains("dark") ? "☀️" : "🌙";
+      }
 
+      async function uploadAndGenerate() {
+        const file = document.getElementById("file").files[0];
+        const password = document.getElementById("password").value.trim();
         if (!file || !password) {
-          alert("Select file and enter password");
+          document.getElementById("error").textContent =
+            "File and password are required!";
           return;
         }
 
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("password", password);
-
         try {
-          const resp = await fetch("https://qr-image-app.onrender.com/upload", {
+          const formData = new FormData();
+          formData.append("file", file);
+          formData.append("password", password);
+
+          // Render backend URL
+          const backendUrl = "https://qr-image-app.onrender.com";
+          const resp = await fetch(`${backendUrl}/upload`, {
             method: "POST",
             body: formData,
           });
 
-          const data = await resp.json();
-          if (!resp.ok) throw new Error(data.error || "Upload failed");
+          if (!resp.ok) throw new Error("Upload failed");
 
-          // Generate QR pointing to viewer.html with file + password
-          const qrData = `https://curious-jelly-a36572.netlify.app/viewer.html#file=${encodeURIComponent(
+          const data = await resp.json();
+          const url = `viewer.html#file=${encodeURIComponent(
             data.fileName
-          )}&password=${encodeURIComponent(data.password)}`;
+          )}&password=${encodeURIComponent(password)}`;
+
           document.getElementById("qrcode").innerHTML = "";
-          new QRCode(document.getElementById("qrcode"), {
-            text: qrData,
-            width: 220,
-            height: 220,
-          });
-        } catch (err) {
-          console.error(err);
-          document.getElementById("error").textContent = "Upload failed";
+          new QRCode(document.getElementById("qrcode"), url);
+          document.getElementById("error").textContent = "";
+        } catch (e) {
+          console.error("Upload error:", e);
+          document.getElementById("error").textContent = "Upload failed!";
         }
       }
     </script>

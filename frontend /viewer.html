@@ -3,50 +3,179 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>View Encrypted Image</title>
+    <title>Secure QR Image Viewer</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        transition: all 0.3s ease;
+      }
+      body {
+        font-family: "Roboto", sans-serif;
+        background: linear-gradient(135deg, #e0f7fa, #f3e5f5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        padding: 20px;
+      }
+      body.dark {
+        background: linear-gradient(135deg, #121212, #1f1f1f);
+        color: #fff;
+      }
+
+      .container {
+        background: #fff;
+        max-width: 500px;
+        width: 100%;
+        border-radius: 15px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        padding: 30px;
+        text-align: center;
+      }
+      body.dark .container {
+        background: #1e1e1e;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+      }
+
+      h2 {
+        font-size: 1.8rem;
+        margin-bottom: 20px;
+      }
+      input[type="password"] {
+        width: 90%;
+        padding: 12px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        font-size: 1rem;
+      }
+      body.dark input[type="password"] {
+        background: #333;
+        color: #fff;
+        border: 1px solid #555;
+      }
+
+      button {
+        background-color: #6200ea;
+        color: #fff;
+        border: none;
+        padding: 12px 25px;
+        font-size: 1rem;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background 0.3s, transform 0.2s;
+      }
+      button:hover {
+        background-color: #3700b3;
+        transform: scale(1.05);
+      }
+
+      #error {
+        color: #e53935;
+        margin-top: 15px;
+        font-weight: 500;
+      }
+      #img {
+        max-width: 100%;
+        margin-top: 20px;
+        border-radius: 12px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        opacity: 0;
+        transition: opacity 0.5s;
+        display: none;
+      }
+
+      .theme-toggle {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        cursor: pointer;
+        background: none;
+        border: 2px solid #6200ea;
+        border-radius: 50%;
+        padding: 8px 12px;
+        font-weight: bold;
+      }
+      .theme-toggle:hover {
+        background-color: #6200ea;
+        color: #fff;
+      }
+
+      @media (max-width: 600px) {
+        .container {
+          padding: 20px;
+        }
+        h2 {
+          font-size: 1.5rem;
+        }
+        input[type="password"] {
+          font-size: 0.95rem;
+        }
+        button {
+          font-size: 0.95rem;
+          padding: 10px 20px;
+        }
+      }
+    </style>
   </head>
   <body>
-    <h2>Enter Password to Unlock Image</h2>
-    <input type="password" id="pwd" placeholder="Password" /><br />
-    <button onclick="unlockImage()">Unlock</button>
-    <p id="error"></p>
-    <img id="img" style="max-width: 100%; margin-top: 20px; display: none" />
+    <button class="theme-toggle" onclick="toggleTheme()">🌙</button>
+    <div class="container">
+      <h2>Enter Password to Unlock Image</h2>
+      <input type="password" id="pwd" placeholder="Password" />
+      <br />
+      <button onclick="unlockImage()">Unlock</button>
+      <p id="error"></p>
+      <img id="img" />
+    </div>
 
     <script>
+      function toggleTheme() {
+        document.body.classList.toggle("dark");
+        document.querySelector(".theme-toggle").textContent =
+          document.body.classList.contains("dark") ? "☀️" : "🌙";
+      }
+
       async function unlockImage() {
-        const pwd = document.getElementById("pwd").value.trim();
+        const pwdInput = document.getElementById("pwd").value.trim();
         const params = new URLSearchParams(window.location.hash.slice(1));
         const fileName = params.get("file");
-        const qrPassword = params.get("password");
+        const passwordFromUrl = params.get("password");
 
-        if (!fileName || !pwd) {
+        if (!fileName || !pwdInput) {
           document.getElementById("error").textContent =
             "Missing file or password!";
           return;
         }
 
-        if (pwd !== qrPassword) {
+        if (pwdInput !== passwordFromUrl) {
           document.getElementById("error").textContent = "Incorrect password!";
           return;
         }
 
         try {
+          const backendUrl = "https://qr-image-app.onrender.com";
           const resp = await fetch(
-            `https://qr-image-app.onrender.com/download?fileName=${encodeURIComponent(
-              fileName
-            )}&password=${encodeURIComponent(pwd)}`
+            `${backendUrl}/download?fileName=${encodeURIComponent(fileName)}`
           );
           if (!resp.ok) throw new Error("Failed to fetch image");
 
           const data = await resp.json();
-          if (!data.downloadUrl) throw new Error("No download URL returned");
+          if (!data.downloadUrl) throw new Error("No download URL found");
 
-          const imgEl = document.getElementById("img");
-          imgEl.src = data.downloadUrl;
-          imgEl.style.display = "block";
+          const imgElem = document.getElementById("img");
+          imgElem.src = data.downloadUrl;
+          imgElem.style.display = "block";
+          setTimeout(() => (imgElem.style.opacity = 1), 100);
           document.getElementById("error").textContent = "";
-        } catch (err) {
-          console.error(err);
+        } catch (e) {
+          console.error(e);
           document.getElementById("error").textContent =
             "Failed to load image!";
         }
