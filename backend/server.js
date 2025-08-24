@@ -1,3 +1,4 @@
+// server.js
 const express = require("express");
 const multer = require("multer");
 const B2 = require("backblaze-b2");
@@ -7,27 +8,38 @@ require("dotenv").config();
 const app = express();
 const port = process.env.PORT || 3000;
 
+// --- CORS setup ---
+const allowedOrigins = process.env.FRONTEND_URL.split(",");
 const corsOptions = {
-    origin: process.env.FRONTEND_URL,
+    origin: function (origin, callback) {
+        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            callback(new Error("Not allowed by CORS"));
+        }
+    },
     methods: ["GET", "POST"],
     allowedHeaders: ["Content-Type", "Authorization"],
 };
 app.use(cors(corsOptions));
 app.options("*", cors(corsOptions));
 
+// --- Middleware ---
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 const upload = multer({ storage: multer.memoryStorage() });
 
+// --- Backblaze B2 setup ---
 const b2 = new B2({
     applicationKeyId: process.env.B2_KEY_ID,
     applicationKey: process.env.B2_APP_KEY,
 });
 
 const bucketName = process.env.B2_BUCKET_NAME;
-let bucketId = null;
+let bucketId;
 
+// --- Authorize B2 & resolve bucketId ---
 async function authorizeB2() {
     await b2.authorize();
     if (!bucketId) {
@@ -38,7 +50,7 @@ async function authorizeB2() {
     }
 }
 
-// Upload endpoint
+// --- Upload endpoint ---
 app.post("/upload", upload.single("file"), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: "No file uploaded" });
@@ -58,11 +70,11 @@ app.post("/upload", upload.single("file"), async (req, res) => {
         res.json({ fileName: uploadResp.data.fileName });
     } catch (err) {
         console.error("Upload error:", err);
-        res.status(500).json({ error: "Upload failed", details: err.message });
+        res.status(500).json({ error: "Upload failed" });
     }
 });
 
-// Download endpoint
+// --- Download endpoint ---
 app.get("/download", async (req, res) => {
     try {
         const { fileName } = req.query;
@@ -70,17 +82,20 @@ app.get("/download", async (req, res) => {
 
         await authorizeB2();
 
-        const authResp = await b2.getDownloadAuthorization({
+        const downloadAuthResp = await b2.getDownloadAuthorization({
             bucketId,
             fileNamePrefix: fileName,
-            validDurationInSeconds: 300,
+            validDurationInSeconds: 300, // 5 min
         });
 
-        const downloadUrl = `https://f000.backblazeb2.com/file/${bucketName}/${encodeURIComponent(fileName)}?Authorization=${authResp.data.authorizationToken}`;
+        const downloadUrl = `https://f000.backblazeb2.com/file/${bucketName}/${encodeURIComponent(
+            fileName
+        )}?Authorization=${downloadAuthResp.data.authorizationToken}`;
+
         res.json({ downloadUrl });
     } catch (err) {
         console.error("Download error:", err);
-        res.status(500).json({ error: "Download URL generation failed", details: err.message });
+        res.status(500).json({ error: "Download URL generation failed" });
     }
 });
 

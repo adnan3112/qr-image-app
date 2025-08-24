@@ -3,51 +3,66 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>View Encrypted Image</title>
+    <title>View Protected Image</title>
     <style>
       body {
         font-family: Arial, sans-serif;
         padding: 20px;
-        text-align: center;
+        background: #f9f9f9;
       }
       input,
       button {
         padding: 10px;
-        margin: 5px;
+        margin: 5px 0;
+        width: 100%;
       }
-      img {
+      #img {
         max-width: 100%;
-        margin-top: 20px;
+        margin-top: 15px;
         display: none;
+      }
+      #error {
+        color: red;
+        margin-top: 10px;
       }
     </style>
   </head>
   <body>
     <h2>Enter Password to Unlock Image</h2>
-    <input type="password" id="pwd" placeholder="Password" /><br />
+    <input type="password" id="pwd" placeholder="Password" />
     <button onclick="unlockImage()">Unlock</button>
     <p id="error"></p>
     <img id="img" />
 
     <script>
+      const backendUrl =
+        window.location.hostname === "127.0.0.1" ||
+        window.location.hostname === "localhost"
+          ? "http://localhost:3000"
+          : "https://qr-image-app.onrender.com";
+
       async function unlockImage() {
-        const pwd = document.getElementById("pwd").value.trim();
+        const inputPwd = document.getElementById("pwd").value.trim();
         const params = new URLSearchParams(window.location.hash.slice(1));
         const fileName = params.get("file");
+        const pwd = params.get("pwd");
 
-        if (!fileName || !pwd) {
+        if (!fileName || !inputPwd) {
           document.getElementById("error").textContent =
-            "Missing file or password!";
+            "File or password missing!";
+          return;
+        }
+
+        if (inputPwd !== pwd) {
+          document.getElementById("error").textContent = "Incorrect password!";
           return;
         }
 
         try {
-          const backendUrl = "https://qr-image-app.onrender.com";
           const resp = await fetch(
             `${backendUrl}/download?fileName=${encodeURIComponent(fileName)}`
           );
-          if (!resp.ok) throw new Error("Failed to fetch image info");
-
+          if (!resp.ok) throw new Error("Failed to fetch image URL");
           const data = await resp.json();
           if (!data.downloadUrl) throw new Error("No download URL returned");
 
