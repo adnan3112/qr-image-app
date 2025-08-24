@@ -8,8 +8,15 @@ require("dotenv").config(); // Load .env
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Middleware
-app.use(cors());
+// ✅ Allow only your Netlify frontend
+app.use(
+    cors({
+        origin: ["https://curious-jelly-a36572.netlify.app"],
+        methods: ["GET", "POST"],
+        allowedHeaders: ["Content-Type", "Authorization"],
+    })
+);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -62,7 +69,10 @@ app.post("/upload", upload.single("file"), async (req, res) => {
 app.get("/download", async (req, res) => {
     try {
         const { fileName } = req.query;
-        if (!fileName) return res.status(400).json({ error: "Missing fileName query parameter" });
+        if (!fileName)
+            return res
+                .status(400)
+                .json({ error: "Missing fileName query parameter" });
 
         await authorizeB2();
 
@@ -79,8 +89,12 @@ app.get("/download", async (req, res) => {
         res.json({ downloadUrl });
     } catch (err) {
         console.error("Download URL generation error:", err);
-        res.status(500).json({ error: "Download URL generation failed" });
+        res
+            .status(500)
+            .json({ error: "Download URL generation failed", details: err.message });
     }
 });
 
-app.listen(port, () => console.log(`Server running on http://localhost:${port}`));
+app.listen(port, () =>
+    console.log(`Server running on http://localhost:${port}`)
+);
