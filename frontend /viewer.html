@@ -4,13 +4,30 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>View Encrypted Image</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+        text-align: center;
+      }
+      input,
+      button {
+        padding: 10px;
+        margin: 5px;
+      }
+      img {
+        max-width: 100%;
+        margin-top: 20px;
+        display: none;
+      }
+    </style>
   </head>
   <body>
     <h2>Enter Password to Unlock Image</h2>
-    <input type="password" id="pwd" placeholder="Password" /><br /><br />
+    <input type="password" id="pwd" placeholder="Password" /><br />
     <button onclick="unlockImage()">Unlock</button>
     <p id="error"></p>
-    <img id="img" style="max-width: 100%; margin-top: 20px; display: none" />
+    <img id="img" />
 
     <script>
       async function unlockImage() {
@@ -24,26 +41,22 @@
           return;
         }
 
-        // check password (demo: localStorage validation)
-        const correctPwd = localStorage.getItem(fileName);
-        if (pwd !== correctPwd) {
-          document.getElementById("error").textContent = "Wrong password!";
-          return;
-        }
-
         try {
           const backendUrl = "https://qr-image-app.onrender.com";
           const resp = await fetch(
             `${backendUrl}/download?fileName=${encodeURIComponent(fileName)}`
           );
+          if (!resp.ok) throw new Error("Failed to fetch image info");
+
           const data = await resp.json();
-          if (!data.downloadUrl) throw new Error("No download URL");
+          if (!data.downloadUrl) throw new Error("No download URL returned");
 
           const imgEl = document.getElementById("img");
           imgEl.src = data.downloadUrl;
           imgEl.style.display = "block";
           document.getElementById("error").textContent = "";
         } catch (e) {
+          console.error(e);
           document.getElementById("error").textContent =
             "Failed to load image!";
         }
