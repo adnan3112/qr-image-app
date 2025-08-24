@@ -3,26 +3,28 @@ const express = require("express");
 const multer = require("multer");
 const B2 = require("backblaze-b2");
 const cors = require("cors");
-require("dotenv").config(); // Load .env
+require("dotenv").config(); // load .env variables
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-// ✅ Allow only your Netlify frontend
-app.use(
-    cors({
-        origin: ["https://curious-jelly-a36572.netlify.app"],
-        methods: ["GET", "POST"],
-        allowedHeaders: ["Content-Type", "Authorization"],
-    })
-);
+// Explicit CORS settings
+const corsOptions = {
+    origin: "https://curious-jelly-a36572.netlify.app", // your Netlify site
+    methods: ["GET", "POST"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+};
+
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions)); // handle preflight requests
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 const upload = multer({ storage: multer.memoryStorage() });
 
-// B2 credentials from environment variables
+// Backblaze B2 credentials from .env
 const b2 = new B2({
     applicationKeyId: process.env.B2_KEY_ID,
     applicationKey: process.env.B2_APP_KEY,
@@ -69,10 +71,7 @@ app.post("/upload", upload.single("file"), async (req, res) => {
 app.get("/download", async (req, res) => {
     try {
         const { fileName } = req.query;
-        if (!fileName)
-            return res
-                .status(400)
-                .json({ error: "Missing fileName query parameter" });
+        if (!fileName) return res.status(400).json({ error: "Missing fileName query parameter" });
 
         await authorizeB2();
 
@@ -89,12 +88,8 @@ app.get("/download", async (req, res) => {
         res.json({ downloadUrl });
     } catch (err) {
         console.error("Download URL generation error:", err);
-        res
-            .status(500)
-            .json({ error: "Download URL generation failed", details: err.message });
+        res.status(500).json({ error: "Download URL generation failed" });
     }
 });
 
-app.listen(port, () =>
-    console.log(`Server running on http://localhost:${port}`)
-);
+app.listen(port, () => console.log(`Server running on http://localhost:${port}`));
