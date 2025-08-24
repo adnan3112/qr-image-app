@@ -4,24 +4,46 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Secure QR Image</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        margin: 50px;
+      }
+      .card {
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        display: inline-block;
+      }
+      #qrcode {
+        margin-top: 20px;
+      }
+    </style>
   </head>
   <body>
-    <h2>Upload Image & Generate QR</h2>
-    <input type="password" id="pwd" placeholder="Enter password" />
-    <input type="file" id="imgFile" accept="image/*" />
-    <button onclick="uploadAndGenerate()">Upload & Generate QR</button>
-    <div id="qrcode"></div>
-    <p id="message"></p>
+    <h1>🔐 Secure QR Image</h1>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <div class="card">
+      <h2>Upload Image & Generate QR</h2>
+      <input
+        type="password"
+        id="pwd"
+        placeholder="Enter Password"
+      /><br /><br />
+      <input type="file" id="fileInput" /><br /><br />
+      <button onclick="uploadAndGenerate()">Generate QR</button>
+      <div id="qrcode"></div>
+      <p id="status"></p>
+    </div>
+
     <script>
       async function uploadAndGenerate() {
         const pwd = document.getElementById("pwd").value.trim();
-        const file = document.getElementById("imgFile").files[0];
-        const msg = document.getElementById("message");
-
+        const file = document.getElementById("fileInput").files[0];
         if (!pwd || !file) {
-          msg.textContent = "Password and file are required.";
+          alert("Enter password and select a file!");
           return;
         }
 
@@ -33,28 +55,30 @@
             method: "POST",
             body: formData,
           });
-
-          if (!resp.ok) throw new Error("Upload failed");
-
           const data = await resp.json();
+          if (!resp.ok) throw new Error(data.error || "Upload failed");
+
           const fileName = data.fileName;
 
-          // Generate QR code
-          const qrUrl = `${
-            window.location.origin
-          }/viewer.html#file=${encodeURIComponent(
-            fileName
-          )}&pwd=${encodeURIComponent(pwd)}`;
+          // Generate QR with only file reference
+          const viewerUrl =
+            window.location.origin +
+            "/viewer.html#file=" +
+            encodeURIComponent(fileName);
+
           document.getElementById("qrcode").innerHTML = "";
           new QRCode(document.getElementById("qrcode"), {
-            text: qrUrl,
-            width: 200,
-            height: 200,
+            text: viewerUrl,
+            width: 220,
+            height: 220,
           });
-          msg.textContent = "QR code generated!";
-        } catch (e) {
-          console.error(e);
-          msg.textContent = "Upload failed!";
+
+          document.getElementById("status").textContent = "QR Code generated!";
+          // save password locally so viewer can validate (for demo; use DB for real app)
+          localStorage.setItem(fileName, pwd);
+        } catch (err) {
+          console.error(err);
+          document.getElementById("status").textContent = "Upload failed!";
         }
       }
     </script>

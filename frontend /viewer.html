@@ -7,25 +7,26 @@
   </head>
   <body>
     <h2>Enter Password to Unlock Image</h2>
-    <input type="password" id="pwd" placeholder="Password" /><br />
+    <input type="password" id="pwd" placeholder="Password" /><br /><br />
     <button onclick="unlockImage()">Unlock</button>
     <p id="error"></p>
     <img id="img" style="max-width: 100%; margin-top: 20px; display: none" />
 
     <script>
       async function unlockImage() {
-        const pwdInput = document.getElementById("pwd").value.trim();
+        const pwd = document.getElementById("pwd").value.trim();
         const params = new URLSearchParams(window.location.hash.slice(1));
         const fileName = params.get("file");
-        const qrPwd = params.get("pwd");
 
-        if (!fileName || !pwdInput) {
+        if (!fileName || !pwd) {
           document.getElementById("error").textContent =
             "Missing file or password!";
           return;
         }
 
-        if (pwdInput !== qrPwd) {
+        // check password (demo: localStorage validation)
+        const correctPwd = localStorage.getItem(fileName);
+        if (pwd !== correctPwd) {
           document.getElementById("error").textContent = "Wrong password!";
           return;
         }
@@ -35,7 +36,6 @@
           const resp = await fetch(
             `${backendUrl}/download?fileName=${encodeURIComponent(fileName)}`
           );
-          if (!resp.ok) throw new Error("Failed to fetch image");
           const data = await resp.json();
           if (!data.downloadUrl) throw new Error("No download URL");
 
