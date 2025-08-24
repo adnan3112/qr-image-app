@@ -3,40 +3,57 @@ const express = require("express");
 const multer = require("multer");
 const B2 = require("backblaze-b2");
 const cors = require("cors");
+require("dotenv").config(); // Load .env
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
+// Middleware
 app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 const upload = multer({ storage: multer.memoryStorage() });
 
-// B2 credentials
+// B2 credentials from environment variables
 const b2 = new B2({
-    applicationKeyId: "005a7ae2f2dc5ee0000000001",
-    applicationKey: "K005oD6gTbbQpvROb/E+ZCQ/ColG5Kk",
+    applicationKeyId: process.env.B2_KEY_ID,
+    applicationKey: process.env.B2_APP_KEY,
 });
 
-const bucketId = "7af7da6e824fd2cd9c850e1e"; // your private bucket
+const bucketId = process.env.B2_BUCKET_ID;
+
+// Authorize B2
+async function authorizeB2() {
+    try {
+        await b2.authorize();
+    } catch (err) {
+        console.error("B2 authorization failed:", err);
+        throw err;
+    }
+}
 
 // Upload endpoint
 app.post("/upload", upload.single("file"), async (req, res) => {
     try {
-        await b2.authorize();
+        if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+
+        await authorizeB2();
 
         const fileName = `${Date.now()}_${req.file.originalname}`;
 
         const uploadUrlResp = await b2.getUploadUrl({ bucketId });
 
-        await b2.uploadFile({
+        const uploadResp = await b2.uploadFile({
             uploadUrl: uploadUrlResp.data.uploadUrl,
             uploadAuthToken: uploadUrlResp.data.authorizationToken,
             fileName,
             data: req.file.buffer,
         });
 
-        res.json({ fileName });
+        res.json({ fileName: uploadResp.data.fileName });
     } catch (err) {
-        console.error(err);
+        console.error("Upload error:", err);
         res.status(500).json({ error: "Upload failed" });
     }
 });
@@ -45,17 +62,23 @@ app.post("/upload", upload.single("file"), async (req, res) => {
 app.get("/download", async (req, res) => {
     try {
         const { fileName } = req.query;
-        await b2.authorize();
-        const downloadUrlResp = await b2.getDownloadAuthorization({
+        if (!fileName) return res.status(400).json({ error: "Missing fileName query parameter" });
+
+        await authorizeB2();
+
+        const downloadAuthResp = await b2.getDownloadAuthorization({
             bucketId,
             fileNamePrefix: fileName,
-            validDurationInSeconds: 60, // link valid for 1 min
+            validDurationInSeconds: 60, // link valid for 1 minute
         });
 
-        const downloadUrl = `https://f000.backblazeb2.com/file/${bucketId}/${encodeURIComponent(fileName)}?Authorization=${downloadUrlResp.data.authorizationToken}`;
+        const downloadUrl = `https://f000.backblazeb2.com/file/${bucketId}/${encodeURIComponent(
+            fileName
+        )}?Authorization=${downloadAuthResp.data.authorizationToken}`;
+
         res.json({ downloadUrl });
     } catch (err) {
-        console.error(err);
+        console.error("Download URL generation error:", err);
         res.status(500).json({ error: "Download URL generation failed" });
     }
 });
