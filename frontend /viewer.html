@@ -28,7 +28,6 @@
         background: linear-gradient(135deg, #121212, #1f1f1f);
         color: #fff;
       }
-
       .container {
         background: #fff;
         max-width: 500px;
@@ -42,7 +41,6 @@
         background: #1e1e1e;
         box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
       }
-
       h2 {
         font-size: 1.8rem;
         margin-bottom: 20px;
@@ -60,7 +58,6 @@
         color: #fff;
         border: 1px solid #555;
       }
-
       button {
         background-color: #6200ea;
         color: #fff;
@@ -75,7 +72,6 @@
         background-color: #3700b3;
         transform: scale(1.05);
       }
-
       #error {
         color: #e53935;
         margin-top: 15px;
@@ -90,7 +86,6 @@
         transition: opacity 0.5s;
         display: none;
       }
-
       .theme-toggle {
         position: absolute;
         top: 20px;
@@ -106,7 +101,6 @@
         background-color: #6200ea;
         color: #fff;
       }
-
       @media (max-width: 600px) {
         .container {
           padding: 20px;
@@ -128,8 +122,7 @@
     <button class="theme-toggle" onclick="toggleTheme()">🌙</button>
     <div class="container">
       <h2>Enter Password to Unlock Image</h2>
-      <input type="password" id="pwd" placeholder="Password" />
-      <br />
+      <input type="password" id="pwd" placeholder="Password" /><br />
       <button onclick="unlockImage()">Unlock</button>
       <p id="error"></p>
       <img id="img" />
@@ -153,7 +146,6 @@
             "Missing file or password!";
           return;
         }
-
         if (pwdInput !== passwordFromUrl) {
           document.getElementById("error").textContent = "Incorrect password!";
           return;

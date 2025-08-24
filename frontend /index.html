@@ -70,7 +70,8 @@
         color: #fff;
         border: 1px solid #555;
       }
-      input:focus {
+      input[type="password"]:focus,
+      input[type="file"]:focus {
         border-color: #6200ea;
       }
 
@@ -125,9 +126,13 @@
         h2 {
           font-size: 1.5rem;
         }
-        input,
+        input[type="password"],
+        input[type="file"] {
+          font-size: 0.95rem;
+        }
         button {
           font-size: 0.95rem;
+          padding: 10px 20px;
         }
       }
     </style>
@@ -147,8 +152,10 @@
     <script>
       function toggleTheme() {
         document.body.classList.toggle("dark");
-        document.querySelector(".theme-toggle").textContent =
-          document.body.classList.contains("dark") ? "☀️" : "🌙";
+        const btn = document.querySelector(".theme-toggle");
+        btn.textContent = document.body.classList.contains("dark")
+          ? "☀️"
+          : "🌙";
       }
 
       async function uploadAndGenerate() {
@@ -165,7 +172,6 @@
           formData.append("file", file);
           formData.append("password", password);
 
-          // Render backend URL
           const backendUrl = "https://qr-image-app.onrender.com";
           const resp = await fetch(`${backendUrl}/upload`, {
             method: "POST",
@@ -183,7 +189,7 @@
           new QRCode(document.getElementById("qrcode"), url);
           document.getElementById("error").textContent = "";
         } catch (e) {
-          console.error("Upload error:", e);
+          console.error(e);
           document.getElementById("error").textContent = "Upload failed!";
         }
       }
