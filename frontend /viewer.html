@@ -17,38 +17,30 @@
         const pwd = document.getElementById("pwd").value.trim();
         const params = new URLSearchParams(window.location.hash.slice(1));
         const fileName = params.get("file");
-
         if (!fileName || !pwd) {
           document.getElementById("error").textContent =
             "Missing file or password!";
           return;
         }
 
-        // Check password
-        const correctPwd = params.get("pwd");
-        if (pwd !== correctPwd) {
-          document.getElementById("error").textContent = "Incorrect password!";
-          return;
-        }
-
         try {
+          const backendUrl = "https://qr-image-app.onrender.com"; // your backend
           const resp = await fetch(
-            `https://qr-image-app.onrender.com/download?fileName=${encodeURIComponent(
-              fileName
-            )}`
+            `${backendUrl}/download?fileName=${encodeURIComponent(fileName)}`
           );
-          const data = await resp.json();
-          if (!resp.ok || !data.downloadUrl)
-            throw new Error("Failed to fetch image");
+          if (!resp.ok) throw new Error("Failed to fetch image info");
 
-          const img = document.getElementById("img");
-          img.src = data.downloadUrl;
-          img.style.display = "block";
+          const data = await resp.json();
+          if (!data.downloadUrl) throw new Error("No download URL returned");
+
+          // Display image
+          const imgEl = document.getElementById("img");
+          imgEl.src = data.downloadUrl;
+          imgEl.style.display = "block";
           document.getElementById("error").textContent = "";
-        } catch (err) {
+        } catch (e) {
           document.getElementById("error").textContent =
             "Failed to load image!";
-          console.error(err);
         }
       }
     </script>
