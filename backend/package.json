@@ -1,13 +1,14 @@
 {
   "name": "qr-image-app",
   "version": "1.0.0",
-  "description": "",
+  "description": "Backend for QR image upload and retrieval",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "nodemon server.js"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": ["backblaze", "b2", "express", "qr-code", "multer"],
+  "author": "Mohd Adnan Shaikh",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
@@ -15,6 +16,10 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
     "express": "^4.18.2",
-    "multer": "^2.0.2"
+    "multer": "^2.0.2",
+    "axios": "^1.11.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
   }
 }
