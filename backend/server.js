@@ -1,24 +1,27 @@
+// server.js
 const express = require("express");
 const multer = require("multer");
 const B2 = require("backblaze-b2");
 const cors = require("cors");
-require("dotenv").config(); // load env vars
+require("dotenv").config(); // load environment variables
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 // --- CORS setup ---
 const corsOptions = {
-    origin: process.env.FRONTEND_URL || "*",
+    origin: process.env.FRONTEND_URL || "*", // allow your Netlify site
     methods: ["GET", "POST"],
     allowedHeaders: ["Content-Type", "Authorization"],
 };
 app.use(cors(corsOptions));
-app.options("*", cors(corsOptions)); // preflight
+app.options("*", cors(corsOptions)); // handle preflight requests
 
 // --- Middleware ---
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Multer setup for in-memory file uploads
 const upload = multer({ storage: multer.memoryStorage() });
 
 // --- Backblaze B2 setup ---
@@ -26,22 +29,18 @@ const b2 = new B2({
     applicationKeyId: process.env.B2_KEY_ID,
     applicationKey: process.env.B2_APP_KEY,
 });
-const bucketName = process.env.B2_BUCKET_NAME;
-let bucketId = null; // will be resolved dynamically
 
-// --- Authorize + resolve bucket ID ---
+const bucketName = process.env.B2_BUCKET_NAME;
+let bucketId = process.env.B2_BUCKET_ID; // optional, will fetch if not provided
+
+// --- Authorize and get bucket ID ---
 async function authorizeB2() {
-    try {
-        await b2.authorize();
-        if (!bucketId) {
-            const resp = await b2.listBuckets();
-            const bucket = resp.data.buckets.find((b) => b.bucketName === bucketName);
-            if (!bucket) throw new Error("Bucket not found: " + bucketName);
-            bucketId = bucket.bucketId;
-        }
-    } catch (err) {
-        console.error("B2 authorization failed:", err);
-        throw err;
+    await b2.authorize();
+    if (!bucketId) {
+        const bucketsResp = await b2.listBuckets();
+        const bucket = bucketsResp.data.buckets.find((b) => b.bucketName === bucketName);
+        if (!bucket) throw new Error("Bucket not found: " + bucketName);
+        bucketId = bucket.bucketId;
     }
 }
 
@@ -53,6 +52,7 @@ app.post("/upload", upload.single("file"), async (req, res) => {
         await authorizeB2();
 
         const fileName = `${Date.now()}_${req.file.originalname}`;
+
         const uploadUrlResp = await b2.getUploadUrl({ bucketId });
         const uploadResp = await b2.uploadFile({
             uploadUrl: uploadUrlResp.data.uploadUrl,
