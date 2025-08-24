@@ -7,17 +7,13 @@ require("dotenv").config();
 const app = express();
 const port = process.env.PORT || 3000;
 
-// CORS for Netlify frontend
-app.use(
-    cors({
-        origin: process.env.FRONTEND_URL, // your Netlify URL
-        methods: ["GET", "POST"],
-        allowedHeaders: ["Content-Type"],
-    })
-);
-app.options("*", cors());
+// CORS setup for Netlify frontend
+app.use(cors({
+    origin: process.env.FRONTEND_URL,
+    methods: ["GET", "POST"],
+    allowedHeaders: ["Content-Type"],
+}));
 
-// Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -32,7 +28,12 @@ const b2 = new B2({
 const bucketId = process.env.B2_BUCKET_ID;
 
 async function authorizeB2() {
-    await b2.authorize();
+    try {
+        await b2.authorize();
+    } catch (err) {
+        console.error("B2 authorization failed:", err);
+        throw err;
+    }
 }
 
 // Upload endpoint
@@ -52,7 +53,6 @@ app.post("/upload", upload.single("file"), async (req, res) => {
             data: req.file.buffer,
         });
 
-        // Return only the filename; password is not exposed
         res.json({ fileName: uploadResp.data.fileName });
     } catch (err) {
         console.error("Upload error:", err);
@@ -71,7 +71,7 @@ app.get("/download", async (req, res) => {
         const downloadAuthResp = await b2.getDownloadAuthorization({
             bucketId,
             fileNamePrefix: fileName,
-            validDurationInSeconds: 60, // 1 minute
+            validDurationInSeconds: 60,
         });
 
         const downloadUrl = `https://f000.backblazeb2.com/file/${bucketId}/${encodeURIComponent(
@@ -80,11 +80,9 @@ app.get("/download", async (req, res) => {
 
         res.json({ downloadUrl });
     } catch (err) {
-        console.error("Download URL generation error:", err);
+        console.error("Download URL error:", err);
         res.status(500).json({ error: "Download URL generation failed" });
     }
 });
 
-app.listen(port, () =>
-    console.log(`Server running on port ${port}, CORS enabled for ${process.env.FRONTEND_URL}`)
-);
+app.listen(port, () => console.log(`Server running on port ${port}`));

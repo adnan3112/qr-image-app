@@ -14,26 +14,31 @@
 
     <script>
       async function unlockImage() {
-        const pwd = document.getElementById("pwd").value.trim();
+        const pwdInput = document.getElementById("pwd").value.trim();
         const params = new URLSearchParams(window.location.hash.slice(1));
         const fileName = params.get("file");
-        if (!fileName || !pwd) {
+        const qrPwd = params.get("pwd");
+
+        if (!fileName || !pwdInput) {
           document.getElementById("error").textContent =
             "Missing file or password!";
           return;
         }
 
+        if (pwdInput !== qrPwd) {
+          document.getElementById("error").textContent = "Wrong password!";
+          return;
+        }
+
         try {
-          const backendUrl = "https://qr-image-app.onrender.com"; // your backend
+          const backendUrl = "https://qr-image-app.onrender.com";
           const resp = await fetch(
             `${backendUrl}/download?fileName=${encodeURIComponent(fileName)}`
           );
-          if (!resp.ok) throw new Error("Failed to fetch image info");
-
+          if (!resp.ok) throw new Error("Failed to fetch image");
           const data = await resp.json();
-          if (!data.downloadUrl) throw new Error("No download URL returned");
+          if (!data.downloadUrl) throw new Error("No download URL");
 
-          // Display image
           const imgEl = document.getElementById("img");
           imgEl.src = data.downloadUrl;
           imgEl.style.display = "block";

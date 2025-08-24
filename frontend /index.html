@@ -3,37 +3,27 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Secure QR Image Upload</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <style>
-      body {
-        font-family: Arial;
-        padding: 20px;
-      }
-      input,
-      button {
-        margin: 5px 0;
-        padding: 10px;
-        width: 100%;
-      }
-      #qrcode {
-        margin-top: 20px;
-      }
-    </style>
+    <title>Secure QR Image</title>
   </head>
   <body>
     <h2>Upload Image & Generate QR</h2>
-    <input type="file" id="fileInput" />
-    <input type="password" id="password" placeholder="Enter Password" />
+    <input type="password" id="pwd" placeholder="Enter password" />
+    <input type="file" id="imgFile" accept="image/*" />
     <button onclick="uploadAndGenerate()">Upload & Generate QR</button>
     <div id="qrcode"></div>
+    <p id="message"></p>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script>
       async function uploadAndGenerate() {
-        const file = document.getElementById("fileInput").files[0];
-        const pwd = document.getElementById("password").value.trim();
+        const pwd = document.getElementById("pwd").value.trim();
+        const file = document.getElementById("imgFile").files[0];
+        const msg = document.getElementById("message");
 
-        if (!file || !pwd) return alert("File and password required");
+        if (!pwd || !file) {
+          msg.textContent = "Password and file are required.";
+          return;
+        }
 
         const formData = new FormData();
         formData.append("file", file);
@@ -43,23 +33,28 @@
             method: "POST",
             body: formData,
           });
-          const data = await resp.json();
-          if (!resp.ok) throw new Error(data.error || "Upload failed");
 
+          if (!resp.ok) throw new Error("Upload failed");
+
+          const data = await resp.json();
           const fileName = data.fileName;
-          const qrUrl = `https://curious-jelly-a36572.netlify.app/viewer.html#file=${encodeURIComponent(
+
+          // Generate QR code
+          const qrUrl = `${
+            window.location.origin
+          }/viewer.html#file=${encodeURIComponent(
             fileName
           )}&pwd=${encodeURIComponent(pwd)}`;
-
           document.getElementById("qrcode").innerHTML = "";
           new QRCode(document.getElementById("qrcode"), {
             text: qrUrl,
             width: 200,
             height: 200,
           });
-        } catch (err) {
-          alert("Upload failed: " + err.message);
-          console.error(err);
+          msg.textContent = "QR code generated!";
+        } catch (e) {
+          console.error(e);
+          msg.textContent = "Upload failed!";
         }
       }
     </script>
