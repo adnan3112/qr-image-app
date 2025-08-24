@@ -1,4 +1,3 @@
-// server.js
 const express = require("express");
 const multer = require("multer");
 const B2 = require("backblaze-b2");
@@ -10,11 +9,11 @@ const port = process.env.PORT || 3000;
 
 // --- CORS setup ---
 const corsOptions = {
-    origin: process.env.FRONTEND_URL, // Netlify frontend
+    origin: process.env.FRONTEND_URL || "*", // only your Netlify frontend
     methods: ["GET", "POST"],
     allowedHeaders: ["Content-Type", "Authorization"],
 };
-app.use(cors(corsOptions));
+app.use(cors(corsOptions));   // ✅ don't put the URL here
 app.options("*", cors(corsOptions));
 
 // --- Middleware ---
@@ -35,7 +34,6 @@ let bucketId = process.env.B2_BUCKET_ID || null;
 // --- Authorize + resolve bucket ---
 async function authorizeB2() {
     await b2.authorize();
-
     if (!bucketId) {
         const buckets = await b2.listBuckets();
         const bucket = buckets.data.buckets.find((b) => b.bucketName === bucketName);
@@ -74,7 +72,6 @@ app.get("/download", async (req, res) => {
         if (!fileName) return res.status(400).json({ error: "Missing fileName" });
 
         await authorizeB2();
-
         const downloadAuthResp = await b2.getDownloadAuthorization({
             bucketId,
             fileNamePrefix: fileName,
