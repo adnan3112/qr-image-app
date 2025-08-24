@@ -3,60 +3,78 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Unlock Image</title>
+    <title>View Secure Image</title>
     <style>
       body {
         font-family: Arial, sans-serif;
         text-align: center;
-        padding: 20px;
+        padding: 30px;
       }
       input,
       button {
+        margin: 10px;
         padding: 10px;
-        margin: 5px;
       }
-      #protectedImg {
-        max-width: 80%;
+      img {
+        max-width: 100%;
         margin-top: 20px;
         display: none;
-        border-radius: 12px;
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+        border-radius: 10px;
+      }
+      #error {
+        color: red;
+        font-weight: bold;
       }
     </style>
   </head>
   <body>
-    <h1>Unlock Image</h1>
-    <p>Enter the password to view the image.</p>
-    <input type="password" id="inputPwd" placeholder="Enter Password" /><br />
-    <button onclick="checkPassword()">Unlock</button>
-    <p id="error" style="color: red"></p>
-    <img id="protectedImg" src="" />
+    <h2>🔓 Unlock Image</h2>
+    <p>Enter password to view the protected image</p>
+
+    <input type="password" id="pwd" placeholder="Enter Password" />
+    <button onclick="unlockImage()">Unlock</button>
+
+    <p id="error"></p>
+    <img id="protectedImg" />
 
     <script>
-      const params = new URLSearchParams(window.location.search);
-      const fileName = params.get("file");
-      const correctPwd = params.get("pwd");
+      const backendUrl = "https://qr-image-app.onrender.com"; // Render backend
 
-      async function checkPassword() {
-        const entered = document.getElementById("inputPwd").value;
-        if (entered === correctPwd) {
-          const res = await fetch(
-            `http://localhost:3000/download?file=${encodeURIComponent(
-              fileName
-            )}`
-          );
-          const data = await res.json();
-          if (data.downloadUrl) {
-            document.getElementById("protectedImg").src = data.downloadUrl;
-            document.getElementById("protectedImg").style.display = "block";
-            document.getElementById("error").textContent = "";
-          } else {
-            document.getElementById("error").textContent =
-              "Failed to get image URL.";
-          }
-        } else {
-          document.getElementById("error").textContent = "Incorrect password!";
+      function unlockImage() {
+        const pwd = document.getElementById("pwd").value.trim();
+        const params = new URLSearchParams(window.location.hash.slice(1));
+        const correctPwd = params.get("pwd");
+        const fileName = params.get("file");
+
+        if (!pwd || !fileName) {
+          document.getElementById("error").textContent =
+            "❌ Missing password or file info.";
+          return;
         }
+
+        if (pwd !== correctPwd) {
+          document.getElementById("error").textContent = "❌ Wrong password!";
+          return;
+        }
+
+        // If password matches, request a signed download URL from backend
+        fetch(`${backendUrl}/download?fileName=${encodeURIComponent(fileName)}`)
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.downloadUrl) {
+              document.getElementById("protectedImg").src = data.downloadUrl;
+              document.getElementById("protectedImg").style.display = "block";
+              document.getElementById("error").textContent = "";
+            } else {
+              document.getElementById("error").textContent =
+                "❌ Could not fetch image.";
+            }
+          })
+          .catch((err) => {
+            console.error(err);
+            document.getElementById("error").textContent =
+              "❌ Error fetching image.";
+          });
       }
     </script>
   </body>
