@@ -9,15 +9,24 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 // --- CORS setup ---
-const corsOptions = {
-    origin: [process.env.FRONTEND_URL, "http://127.0.0.1:5500"], // allow local + deployed frontend
-    methods: ["GET", "POST"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-};
-app.use(cors(corsOptions));
-app.options("*", cors(corsOptions));
+const allowedOrigins = [
+    "https://curious-jelly-a36572.netlify.app", // Netlify frontend
+    "http://127.0.0.1:5500" // optional local testing
+];
 
-// --- Middleware ---
+app.use(cors({
+    origin: function (origin, callback) {
+        if (!origin) return callback(null, true); // allow curl/Postman
+        if (allowedOrigins.indexOf(origin) === -1) {
+            const msg = "CORS not allowed from this origin";
+            return callback(new Error(msg), false);
+        }
+        return callback(null, true);
+    },
+    methods: ["GET", "POST"],
+    allowedHeaders: ["Content-Type"]
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -26,18 +35,17 @@ const upload = multer({ storage: multer.memoryStorage() });
 // --- Backblaze B2 setup ---
 const b2 = new B2({
     applicationKeyId: process.env.B2_KEY_ID,
-    applicationKey: process.env.B2_APP_KEY,
+    applicationKey: process.env.B2_APP_KEY
 });
-
 const bucketName = process.env.B2_BUCKET_NAME;
 let bucketId;
 
-// --- Authorize + get bucket ID ---
+// --- Authorize and get bucket ---
 async function authorizeB2() {
     await b2.authorize();
     if (!bucketId) {
-        const buckets = await b2.listBuckets();
-        const bucket = buckets.data.buckets.find((b) => b.bucketName === bucketName);
+        const bucketsResp = await b2.listBuckets({ accountId: process.env.B2_ACCOUNT_ID });
+        const bucket = bucketsResp.data.buckets.find(b => b.bucketName === bucketName);
         if (!bucket) throw new Error("Bucket not found: " + bucketName);
         bucketId = bucket.bucketId;
     }
@@ -47,49 +55,26 @@ async function authorizeB2() {
 app.post("/upload", upload.single("file"), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+        const password = req.body.password;
+        if (!password) return res.status(400).json({ error: "Password is required" });
 
         await authorizeB2();
 
         const fileName = `${Date.now()}_${req.file.originalname}`;
-
         const uploadUrlResp = await b2.getUploadUrl({ bucketId });
+
         const uploadResp = await b2.uploadFile({
             uploadUrl: uploadUrlResp.data.uploadUrl,
             uploadAuthToken: uploadUrlResp.data.authorizationToken,
             fileName,
-            data: req.file.buffer,
+            data: req.file.buffer
         });
 
-        res.json({ fileName: uploadResp.data.fileName });
+        res.json({ fileName });
     } catch (err) {
         console.error("Upload error:", err);
-        res.status(500).json({ error: "Upload failed" });
+        res.status(500).json({ error: "Upload failed", details: err.message });
     }
 });
 
-// --- Download endpoint ---
-app.get("/download", async (req, res) => {
-    try {
-        const { fileName } = req.query;
-        if (!fileName) return res.status(400).json({ error: "Missing fileName query parameter" });
-
-        await authorizeB2();
-
-        const downloadAuthResp = await b2.getDownloadAuthorization({
-            bucketId,
-            fileNamePrefix: fileName,
-            validDurationInSeconds: 300, // 5 minutes
-        });
-
-        const downloadUrl = `https://f000.backblazeb2.com/file/${bucketName}/${encodeURIComponent(
-            fileName
-        )}?Authorization=${downloadAuthResp.data.authorizationToken}`;
-
-        res.json({ downloadUrl });
-    } catch (err) {
-        console.error("Download error:", err);
-        res.status(500).json({ error: "Download URL generation failed" });
-    }
-});
-
-app.listen(port, () => console.log(`Server running on http://localhost:${port}`));
+app.listen(port, () => console.log(`Server running on port ${port}`));
