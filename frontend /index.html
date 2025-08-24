@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Secure QR Image Upload</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        padding: 20px;
+      }
+      input,
+      button {
+        padding: 10px;
+        margin: 5px;
+      }
+      #qrcode {
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Secure QR Image Upload</h1>
+
+    <input type="file" id="imgFile" accept="image/*" /><br />
+    <input type="password" id="pwd" placeholder="Enter Password" /><br />
+    <button onclick="uploadAndGenerate()">Upload & Generate QR</button>
+
+    <div id="qrcode"></div>
+
+    <script>
+      async function uploadAndGenerate() {
+        const fileInput = document.getElementById("imgFile").files[0];
+        const password = document.getElementById("pwd").value.trim();
+        if (!fileInput || !password) {
+          alert("Upload image and set password!");
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append("file", fileInput);
+
+        const res = await fetch("http://localhost:3000/upload", {
+          method: "POST",
+          body: formData,
+        });
+        const data = await res.json();
+        if (data.error) {
+          alert(data.error);
+          return;
+        }
+
+        const fileName = data.fileName;
+        const qrLink = `${
+          window.location.origin
+        }/viewer.html?file=${encodeURIComponent(
+          fileName
+        )}&pwd=${encodeURIComponent(password)}`;
+
+        document.getElementById("qrcode").innerHTML = "";
+        new QRCode(document.getElementById("qrcode"), {
+          text: qrLink,
+          width: 220,
+          height: 220,
+        });
+        alert("QR Generated! Scan to unlock.");
+      }
+    </script>
+  </body>
+</html>
