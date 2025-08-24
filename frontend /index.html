@@ -60,12 +60,10 @@
           if (!result.fileName)
             throw new Error(result.error || "Upload failed");
 
-          // Build viewer.html URL with password + fileName in hash
+          // Build viewer.html URL with only the fileName
           const viewerUrl = `${
             window.location.origin
-          }/viewer.html#pwd=${encodeURIComponent(
-            pwd
-          )}&file=${encodeURIComponent(result.fileName)}`;
+          }/viewer.html#file=${encodeURIComponent(result.fileName)}`;
 
           document.getElementById("qrcode").innerHTML = "";
           new QRCode(document.getElementById("qrcode"), {

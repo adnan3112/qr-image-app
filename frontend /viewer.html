@@ -6,7 +6,7 @@
     <title>View Secure Image</title>
     <style>
       body {
-        font-family: Arial, sans-serif;
+        font-family: Arial;
         text-align: center;
         padding: 30px;
       }
@@ -38,32 +38,33 @@
     <img id="protectedImg" />
 
     <script>
-      const backendUrl = "https://qr-image-app.onrender.com"; // Render backend
+      const backendUrl = "https://qr-image-app.onrender.com"; // your Render backend
+
+      let selectedFileName = null;
+
+      // On page load, read file parameter from URL hash and assign to selectedFileName
+      window.addEventListener("DOMContentLoaded", () => {
+        const params = new URLSearchParams(window.location.hash.slice(1));
+        selectedFileName = params.get("file");
+      });
 
       function unlockImage() {
         const pwd = document.getElementById("pwd").value.trim();
-        const params = new URLSearchParams(window.location.hash.slice(1));
-        const correctPwd = params.get("pwd");
-        const fileName = params.get("file");
 
-        if (!pwd || !fileName) {
+        if (!pwd || !selectedFileName) {
           document.getElementById("error").textContent =
             "❌ Missing password or file info.";
           return;
         }
 
-        if (pwd !== correctPwd) {
-          document.getElementById("error").textContent = "❌ Wrong password!";
-          return;
-        }
-
-        // If password matches, request a signed download URL from backend
-        fetch(`${backendUrl}/download?fileName=${encodeURIComponent(fileName)}`)
+        // Request a signed download URL from backend
+        fetch(`${backendUrl}/download?fileName=${encodeURIComponent(selectedFileName)}`)
           .then((res) => res.json())
           .then((data) => {
             if (data.downloadUrl) {
-              document.getElementById("protectedImg").src = data.downloadUrl;
-              document.getElementById("protectedImg").style.display = "block";
+              const img = document.getElementById("protectedImg");
+              img.src = data.downloadUrl;
+              img.style.display = "block";
               document.getElementById("error").textContent = "";
             } else {
               document.getElementById("error").textContent =
