@@ -3,18 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Secure QR Image</title>
+    <title>Secure QR Image Upload</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
       body {
-        font-family: Arial, sans-serif;
-        text-align: center;
-        padding: 30px;
+        font-family: Arial;
+        padding: 20px;
       }
       input,
       button {
-        margin: 10px;
+        margin: 5px 0;
         padding: 10px;
+        width: 100%;
       }
       #qrcode {
         margin-top: 20px;
@@ -22,61 +22,44 @@
     </style>
   </head>
   <body>
-    <h1>🔐 Secure QR Image</h1>
-    <p>Upload an image and protect it with a password</p>
-
-    <input type="password" id="pwd" placeholder="Enter Password" />
+    <h2>Upload Image & Generate QR</h2>
     <input type="file" id="fileInput" />
-    <button onclick="uploadAndGenerate()">Generate QR</button>
-
+    <input type="password" id="password" placeholder="Enter Password" />
+    <button onclick="uploadAndGenerate()">Upload & Generate QR</button>
     <div id="qrcode"></div>
-    <p id="status"></p>
 
     <script>
-      const backendUrl = "https://qr-image-app.onrender.com"; // Render backend
-
       async function uploadAndGenerate() {
-        const pwd = document.getElementById("pwd").value.trim();
         const file = document.getElementById("fileInput").files[0];
+        const pwd = document.getElementById("password").value.trim();
 
-        if (!pwd || !file) {
-          alert("Please select a file and enter a password.");
-          return;
-        }
-
-        document.getElementById("status").textContent = "Uploading...";
+        if (!file || !pwd) return alert("File and password required");
 
         const formData = new FormData();
         formData.append("file", file);
 
         try {
-          // Upload to backend
-          const uploadResp = await fetch(`${backendUrl}/upload`, {
+          const resp = await fetch("https://qr-image-app.onrender.com/upload", {
             method: "POST",
             body: formData,
           });
+          const data = await resp.json();
+          if (!resp.ok) throw new Error(data.error || "Upload failed");
 
-          const result = await uploadResp.json();
-          if (!result.fileName)
-            throw new Error(result.error || "Upload failed");
-
-          // Build viewer.html URL with only the fileName
-          const viewerUrl = `${
-            window.location.origin
-          }/viewer.html#file=${encodeURIComponent(result.fileName)}`;
+          const fileName = data.fileName;
+          const qrUrl = `https://curious-jelly-a36572.netlify.app/viewer.html#file=${encodeURIComponent(
+            fileName
+          )}&pwd=${encodeURIComponent(pwd)}`;
 
           document.getElementById("qrcode").innerHTML = "";
           new QRCode(document.getElementById("qrcode"), {
-            text: viewerUrl,
-            width: 220,
-            height: 220,
+            text: qrUrl,
+            width: 200,
+            height: 200,
           });
-
-          document.getElementById("status").textContent =
-            "✅ QR Code generated!";
         } catch (err) {
-          console.error("Upload failed:", err);
-          document.getElementById("status").textContent = "❌ Upload failed!";
+          alert("Upload failed: " + err.message);
+          console.error(err);
         }
       }
     </script>

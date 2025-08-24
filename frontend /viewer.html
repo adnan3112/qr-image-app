@@ -3,79 +3,53 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>View Secure Image</title>
-    <style>
-      body {
-        font-family: Arial;
-        text-align: center;
-        padding: 30px;
-      }
-      input,
-      button {
-        margin: 10px;
-        padding: 10px;
-      }
-      img {
-        max-width: 100%;
-        margin-top: 20px;
-        display: none;
-        border-radius: 10px;
-      }
-      #error {
-        color: red;
-        font-weight: bold;
-      }
-    </style>
+    <title>View Encrypted Image</title>
   </head>
   <body>
-    <h2>🔓 Unlock Image</h2>
-    <p>Enter password to view the protected image</p>
-
-    <input type="password" id="pwd" placeholder="Enter Password" />
+    <h2>Enter Password to Unlock Image</h2>
+    <input type="password" id="pwd" placeholder="Password" /><br />
     <button onclick="unlockImage()">Unlock</button>
-
     <p id="error"></p>
-    <img id="protectedImg" />
+    <img id="img" style="max-width: 100%; margin-top: 20px; display: none" />
 
     <script>
-      const backendUrl = "https://qr-image-app.onrender.com"; // your Render backend
-
-      let selectedFileName = null;
-
-      // On page load, read file parameter from URL hash and assign to selectedFileName
-      window.addEventListener("DOMContentLoaded", () => {
-        const params = new URLSearchParams(window.location.hash.slice(1));
-        selectedFileName = params.get("file");
-      });
-
-      function unlockImage() {
+      async function unlockImage() {
         const pwd = document.getElementById("pwd").value.trim();
+        const params = new URLSearchParams(window.location.hash.slice(1));
+        const fileName = params.get("file");
 
-        if (!pwd || !selectedFileName) {
+        if (!fileName || !pwd) {
           document.getElementById("error").textContent =
-            "❌ Missing password or file info.";
+            "Missing file or password!";
           return;
         }
 
-        // Request a signed download URL from backend
-        fetch(`${backendUrl}/download?fileName=${encodeURIComponent(selectedFileName)}`)
-          .then((res) => res.json())
-          .then((data) => {
-            if (data.downloadUrl) {
-              const img = document.getElementById("protectedImg");
-              img.src = data.downloadUrl;
-              img.style.display = "block";
-              document.getElementById("error").textContent = "";
-            } else {
-              document.getElementById("error").textContent =
-                "❌ Could not fetch image.";
-            }
-          })
-          .catch((err) => {
-            console.error(err);
-            document.getElementById("error").textContent =
-              "❌ Error fetching image.";
-          });
+        // Check password
+        const correctPwd = params.get("pwd");
+        if (pwd !== correctPwd) {
+          document.getElementById("error").textContent = "Incorrect password!";
+          return;
+        }
+
+        try {
+          const resp = await fetch(
+            `https://qr-image-app.onrender.com/download?fileName=${encodeURIComponent(
+              fileName
+            )}`
+          );
+          const data = await resp.json();
+          if (!resp.ok || !data.downloadUrl)
+            throw new Error("Failed to fetch image");
+
+          const img = document.getElementById("img");
+          img.src = data.downloadUrl;
+          img.style.display = "block";
+          document.getElementById("error").textContent = "";
+        } catch (err) {
+          document.getElementById("error").textContent =
+            "Failed to load image!";
+          console.error(err);
+        }
       }
     </script>
   </body>
