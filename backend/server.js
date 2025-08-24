@@ -8,31 +8,33 @@ require("dotenv").config(); // load .env variables
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Explicit CORS settings
-const corsOptions = {
-    origin: "https://curious-jelly-a36572.netlify.app", // your Netlify site
-    methods: ["GET", "POST"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
-};
+// CORS config: allow only your Netlify frontend
+app.use(
+    cors({
+        origin: "https://curious-jelly-a36572.netlify.app",
+        methods: ["GET", "POST"],
+        allowedHeaders: ["Content-Type", "Authorization"],
+    })
+);
 
-app.use(cors(corsOptions));
-app.options("*", cors(corsOptions)); // handle preflight requests
+// Handle preflight requests
+app.options("*", cors());
 
+// Body parser
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Multer memory storage
 const upload = multer({ storage: multer.memoryStorage() });
 
-// Backblaze B2 credentials from .env
+// Backblaze B2
 const b2 = new B2({
     applicationKeyId: process.env.B2_KEY_ID,
     applicationKey: process.env.B2_APP_KEY,
 });
-
 const bucketId = process.env.B2_BUCKET_ID;
 
-// Authorize B2
+// B2 authorization helper
 async function authorizeB2() {
     try {
         await b2.authorize();
@@ -52,7 +54,6 @@ app.post("/upload", upload.single("file"), async (req, res) => {
         const fileName = `${Date.now()}_${req.file.originalname}`;
 
         const uploadUrlResp = await b2.getUploadUrl({ bucketId });
-
         const uploadResp = await b2.uploadFile({
             uploadUrl: uploadUrlResp.data.uploadUrl,
             uploadAuthToken: uploadUrlResp.data.authorizationToken,
@@ -67,18 +68,19 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     }
 });
 
-// Generate temporary download URL for private file
+// Download URL endpoint
 app.get("/download", async (req, res) => {
     try {
         const { fileName } = req.query;
-        if (!fileName) return res.status(400).json({ error: "Missing fileName query parameter" });
+        if (!fileName)
+            return res.status(400).json({ error: "Missing fileName query parameter" });
 
         await authorizeB2();
 
         const downloadAuthResp = await b2.getDownloadAuthorization({
             bucketId,
             fileNamePrefix: fileName,
-            validDurationInSeconds: 60, // link valid for 1 minute
+            validDurationInSeconds: 60, // 1 minute
         });
 
         const downloadUrl = `https://f000.backblazeb2.com/file/${bucketId}/${encodeURIComponent(
@@ -90,6 +92,17 @@ app.get("/download", async (req, res) => {
         console.error("Download URL generation error:", err);
         res.status(500).json({ error: "Download URL generation failed" });
     }
+});
+
+// 404 handler
+app.use((req, res) => {
+    res.status(404).json({ error: "Not Found" });
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+    console.error("Server error:", err);
+    res.status(500).json({ error: "Internal Server Error" });
 });
 
 app.listen(port, () => console.log(`Server running on http://localhost:${port}`));
