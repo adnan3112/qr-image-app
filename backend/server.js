@@ -10,7 +10,7 @@ const port = process.env.PORT || 3000;
 
 // --- CORS setup ---
 const corsOptions = {
-    origin: "https://curious-jelly-a36572.netlify.app", // Netlify frontend
+    origin: process.env.FRONTEND_URL, // Netlify frontend
     methods: ["GET", "POST"],
     allowedHeaders: ["Content-Type", "Authorization"],
 };
@@ -30,11 +30,12 @@ const b2 = new B2({
 });
 
 const bucketName = process.env.B2_BUCKET_NAME;
-let bucketId = process.env.B2_BUCKET_ID; // optional
+let bucketId = process.env.B2_BUCKET_ID || null;
 
 // --- Authorize + resolve bucket ---
 async function authorizeB2() {
     await b2.authorize();
+
     if (!bucketId) {
         const buckets = await b2.listBuckets();
         const bucket = buckets.data.buckets.find((b) => b.bucketName === bucketName);
@@ -61,7 +62,7 @@ app.post("/upload", upload.single("file"), async (req, res) => {
 
         res.json({ fileName: uploadResp.data.fileName });
     } catch (err) {
-        console.error("Upload error:", err);
+        console.error("Upload error:", err?.response?.data || err.message);
         res.status(500).json({ error: "Upload failed" });
     }
 });
@@ -70,9 +71,10 @@ app.post("/upload", upload.single("file"), async (req, res) => {
 app.get("/download", async (req, res) => {
     try {
         const { fileName } = req.query;
-        if (!fileName) return res.status(400).json({ error: "Missing fileName query parameter" });
+        if (!fileName) return res.status(400).json({ error: "Missing fileName" });
 
         await authorizeB2();
+
         const downloadAuthResp = await b2.getDownloadAuthorization({
             bucketId,
             fileNamePrefix: fileName,
@@ -85,9 +87,11 @@ app.get("/download", async (req, res) => {
 
         res.json({ downloadUrl });
     } catch (err) {
-        console.error("Download error:", err);
+        console.error("Download error:", err?.response?.data || err.message);
         res.status(500).json({ error: "Download URL generation failed" });
     }
 });
 
-app.listen(port, () => console.log(`Server running on http://localhost:${port}`));
+app.listen(port, () =>
+    console.log(`✅ Server running on http://localhost:${port}`)
+);
