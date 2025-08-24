@@ -1,3 +1,4 @@
+// server.js
 const express = require("express");
 const multer = require("multer");
 const B2 = require("backblaze-b2");
@@ -9,7 +10,7 @@ const port = process.env.PORT || 3000;
 
 // --- CORS setup ---
 const corsOptions = {
-    origin: process.env.FRONTEND_URL, // dynamic frontend
+    origin: [process.env.FRONTEND_URL, "http://127.0.0.1:5500"], // allow local + deployed frontend
     methods: ["GET", "POST"],
     allowedHeaders: ["Content-Type", "Authorization"],
 };
@@ -29,9 +30,9 @@ const b2 = new B2({
 });
 
 const bucketName = process.env.B2_BUCKET_NAME;
-let bucketId = null;
+let bucketId;
 
-// --- Authorize B2 and get bucketId ---
+// --- Authorize + get bucket ID ---
 async function authorizeB2() {
     await b2.authorize();
     if (!bucketId) {
@@ -47,9 +48,6 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: "No file uploaded" });
 
-        const { password } = req.body;
-        if (!password) return res.status(400).json({ error: "Password is required" });
-
         await authorizeB2();
 
         const fileName = `${Date.now()}_${req.file.originalname}`;
@@ -62,7 +60,7 @@ app.post("/upload", upload.single("file"), async (req, res) => {
             data: req.file.buffer,
         });
 
-        res.json({ fileName: uploadResp.data.fileName, password });
+        res.json({ fileName: uploadResp.data.fileName });
     } catch (err) {
         console.error("Upload error:", err);
         res.status(500).json({ error: "Upload failed" });
@@ -80,7 +78,7 @@ app.get("/download", async (req, res) => {
         const downloadAuthResp = await b2.getDownloadAuthorization({
             bucketId,
             fileNamePrefix: fileName,
-            validDurationInSeconds: 300, // 5 min
+            validDurationInSeconds: 300, // 5 minutes
         });
 
         const downloadUrl = `https://f000.backblazeb2.com/file/${bucketName}/${encodeURIComponent(
