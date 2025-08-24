@@ -3,91 +3,56 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Secure QR Image</title>
+    <title>Secure QR Image Upload</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        padding: 20px;
-        background: #f9f9f9;
-      }
-      .card {
-        background: #fff;
-        padding: 20px;
-        border-radius: 10px;
-        margin-bottom: 20px;
-      }
-      input,
-      button {
-        padding: 10px;
-        margin: 5px 0;
-        width: 100%;
-      }
-      #qrcode {
-        margin-top: 15px;
-      }
-      #protectedImg {
-        max-width: 100%;
-        margin-top: 15px;
-        display: none;
-      }
-    </style>
   </head>
   <body>
-    <div class="card">
-      <h2>Upload & Generate QR</h2>
-      <input type="password" id="pwd" placeholder="Enter Password" />
-      <input type="file" id="fileInput" />
-      <button onclick="uploadAndGenerate()">Upload & Generate QR</button>
-      <div id="qrcode"></div>
-      <p id="uploadError" style="color: red"></p>
-    </div>
+    <h2>Upload Image & Generate QR</h2>
+    <input type="file" id="fileInput" />
+    <input type="text" id="passwordInput" placeholder="Enter password" />
+    <button onclick="uploadAndGenerate()">Upload & Generate QR</button>
+
+    <div id="qrcode"></div>
+    <p id="error"></p>
 
     <script>
-      const backendUrl =
-        window.location.hostname === "127.0.0.1" ||
-        window.location.hostname === "localhost"
-          ? "http://localhost:3000"
-          : "https://qr-image-app.onrender.com";
-
       async function uploadAndGenerate() {
-        const pwd = document.getElementById("pwd").value.trim();
         const fileInput = document.getElementById("fileInput");
+        const passwordInput = document.getElementById("passwordInput");
         const file = fileInput.files[0];
-        if (!pwd || !file) {
-          document.getElementById("uploadError").textContent =
-            "Password & file required!";
+        const password = passwordInput.value.trim();
+
+        if (!file || !password) {
+          alert("Select file and enter password");
           return;
         }
 
         const formData = new FormData();
         formData.append("file", file);
+        formData.append("password", password);
 
         try {
-          const resp = await fetch(`${backendUrl}/upload`, {
+          const resp = await fetch("https://qr-image-app.onrender.com/upload", {
             method: "POST",
             body: formData,
           });
-          if (!resp.ok) throw new Error("Upload failed");
-          const data = await resp.json();
-          const fileName = data.fileName;
 
-          // Generate QR linking to viewer with file & password in hash
-          const viewerUrl = `${
-            window.location.origin
-          }/viewer.html#file=${encodeURIComponent(
-            fileName
-          )}&pwd=${encodeURIComponent(pwd)}`;
+          const data = await resp.json();
+          if (!resp.ok) throw new Error(data.error || "Upload failed");
+
+          // Generate QR pointing to viewer.html with file + password
+          const qrData = `https://curious-jelly-a36572.netlify.app/viewer.html#file=${encodeURIComponent(
+            data.fileName
+          )}&password=${encodeURIComponent(data.password)}`;
           document.getElementById("qrcode").innerHTML = "";
           new QRCode(document.getElementById("qrcode"), {
-            text: viewerUrl,
+            text: qrData,
             width: 220,
             height: 220,
           });
-          document.getElementById("uploadError").textContent = "";
-        } catch (e) {
-          console.error(e);
-          document.getElementById("uploadError").textContent = "Upload failed!";
+        } catch (err) {
+          console.error(err);
+          document.getElementById("error").textContent = "Upload failed";
         }
       }
     </script>
