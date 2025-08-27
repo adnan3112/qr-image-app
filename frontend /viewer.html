@@ -9,6 +9,12 @@
       rel="stylesheet"
     />
     <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        transition: all 0.3s;
+      }
       body {
         font-family: "Roboto", sans-serif;
         background: linear-gradient(135deg, #e0f7fa, #f3e5f5);
@@ -95,6 +101,21 @@
         background-color: #6200ea;
         color: #fff;
       }
+      @media (max-width: 600px) {
+        .container {
+          padding: 20px;
+        }
+        h2 {
+          font-size: 1.5rem;
+        }
+        input[type="password"] {
+          font-size: 0.95rem;
+        }
+        button {
+          font-size: 0.95rem;
+          padding: 10px 20px;
+        }
+      }
     </style>
   </head>
   <body>
@@ -118,7 +139,6 @@
         const params = new URLSearchParams(window.location.hash.slice(1));
         const fileName = params.get("file");
         const passwordFromUrl = params.get("password");
-
         if (!fileName || !pwdInput) {
           document.getElementById("error").textContent =
             "Missing file or password!";
@@ -128,17 +148,14 @@
           document.getElementById("error").textContent = "Incorrect password!";
           return;
         }
-
         try {
           const backendUrl = "https://qr-image-app.onrender.com";
           const resp = await fetch(
             `${backendUrl}/download?fileName=${encodeURIComponent(fileName)}`
           );
           if (!resp.ok) throw new Error("Failed to fetch image");
-
           const data = await resp.json();
           if (!data.downloadUrl) throw new Error("No download URL found");
-
           const imgElem = document.getElementById("img");
           imgElem.src = data.downloadUrl;
           imgElem.style.display = "block";

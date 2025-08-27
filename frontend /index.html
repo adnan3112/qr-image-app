@@ -38,11 +38,14 @@
         box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
         padding: 30px;
         text-align: center;
-        transition: all 0.3s;
+        transition: all 0.3s ease;
       }
       body.dark .container {
         background: #1e1e1e;
         box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+      }
+      .container:hover {
+        transform: translateY(-5px);
       }
       h2 {
         font-size: 1.8rem;
@@ -65,7 +68,8 @@
         color: #fff;
         border: 1px solid #555;
       }
-      input:focus {
+      input[type="password"]:focus,
+      input[type="file"]:focus {
         border-color: #6200ea;
       }
       button {
@@ -138,6 +142,7 @@
       <p id="error"></p>
       <div id="qrcode"></div>
     </div>
+
     <script>
       function toggleTheme() {
         document.body.classList.toggle("dark");
@@ -155,25 +160,20 @@
             "File and password are required!";
           return;
         }
-
         try {
           const formData = new FormData();
           formData.append("file", file);
           formData.append("password", password);
-
           const backendUrl = "https://qr-image-app.onrender.com";
           const resp = await fetch(`${backendUrl}/upload`, {
             method: "POST",
             body: formData,
           });
-
           if (!resp.ok) throw new Error("Upload failed");
-
           const data = await resp.json();
           const url = `viewer.html#file=${encodeURIComponent(
             data.fileName
-          )}&password=${encodeURIComponent(data.password)}`;
-
+          )}&password=${encodeURIComponent(password)}`;
           document.getElementById("qrcode").innerHTML = "";
           new QRCode(document.getElementById("qrcode"), url);
           document.getElementById("error").textContent = "";

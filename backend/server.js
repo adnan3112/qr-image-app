@@ -7,16 +7,12 @@ require("dotenv").config();
 const app = express();
 const port = process.env.PORT || 3000;
 
-// --- CORS setup ---
-const allowedOrigins = [
-    process.env.FRONTEND_URL,
-    "http://127.0.0.1:5500" // optional local testing
-];
+const allowedOrigins = [process.env.FRONTEND_URL];
 
 app.use(cors({
     origin: function (origin, callback) {
-        if (!origin) return callback(null, true);
-        if (allowedOrigins.indexOf(origin) === -1) {
+        if (!origin) return callback(null, true); // allow Postman or curl
+        if (!allowedOrigins.includes(origin)) {
             return callback(new Error("CORS not allowed from this origin"), false);
         }
         return callback(null, true);
@@ -42,16 +38,15 @@ let bucketId;
 async function authorizeB2() {
     try {
         await b2.authorize();
+        if (!bucketId) {
+            const bucketsResp = await b2.listBuckets({ accountId: process.env.B2_ACCOUNT_ID });
+            const bucket = bucketsResp.data.buckets.find(b => b.bucketName === bucketName);
+            if (!bucket) throw new Error("Bucket not found: " + bucketName);
+            bucketId = bucket.bucketId;
+        }
     } catch (err) {
         console.error("B2 authorization failed:", err);
         throw new Error("B2 authorization failed: " + err.message);
-    }
-
-    if (!bucketId) {
-        const bucketsResp = await b2.listBuckets({ accountId: process.env.B2_ACCOUNT_ID });
-        const bucket = bucketsResp.data.buckets.find(b => b.bucketName === bucketName);
-        if (!bucket) throw new Error("Bucket not found: " + bucketName);
-        bucketId = bucket.bucketId;
     }
 }
 
@@ -74,7 +69,7 @@ app.post("/upload", upload.single("file"), async (req, res) => {
             data: req.file.buffer
         });
 
-        res.json({ fileName, password });
+        res.json({ fileName });
     } catch (err) {
         console.error("Upload error:", err);
         res.status(500).json({ error: "Upload failed", details: err.message });
@@ -88,16 +83,7 @@ app.get("/download", async (req, res) => {
 
     try {
         await authorizeB2();
-
-        // Generate a temporary download URL (valid 1 hour)
-        const downloadResp = await b2.getDownloadAuthorization({
-            bucketId,
-            fileNamePrefix: fileName,
-            validDurationInSeconds: 3600
-        });
-
-        const downloadUrl = `https://f002.backblazeb2.com/file/${bucketName}/${encodeURIComponent(fileName)}?Authorization=${downloadResp.data.authorizationToken}`;
-
+        const downloadUrl = `https://f002.backblazeb2.com/file/${bucketName}/${encodeURIComponent(fileName)}`;
         res.json({ downloadUrl });
     } catch (err) {
         console.error("Download error:", err);
