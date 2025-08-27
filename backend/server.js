@@ -8,19 +8,21 @@ require("dotenv").config();
 const app = express();
 const port = process.env.PORT || 3000;
 
-// --- CORS ---
+// --- CORS setup ---
 const allowedOrigins = [
-    "https://curious-jelly-a36572.netlify.app",
+    process.env.FRONTEND_URL || "https://curious-jelly-a36572.netlify.app",
 ];
+
 app.use(cors({
-    origin: (origin, callback) => {
+    origin: function (origin, callback) {
         if (!origin) return callback(null, true);
-        if (!allowedOrigins.includes(origin)) {
+        if (allowedOrigins.indexOf(origin) === -1) {
             return callback(new Error("CORS not allowed from this origin"), false);
         }
         return callback(null, true);
     },
     methods: ["GET", "POST", "OPTIONS"],
+    credentials: true,
 }));
 
 app.use(express.json());
@@ -35,10 +37,7 @@ const b2 = new B2({
 });
 const bucketId = process.env.B2_BUCKET_ID;
 
-// --- Store passwords for files (in-memory) ---
-const filePasswords = {}; // { fileName: password }
-
-// --- Authorize B2 ---
+// --- Authorize function ---
 async function authorizeB2() {
     try {
         await b2.authorize();
@@ -49,11 +48,10 @@ async function authorizeB2() {
     }
 }
 
-// --- Upload Endpoint ---
+// --- Upload endpoint ---
 app.post("/upload", upload.single("file"), async (req, res) => {
     try {
-        const password = req.body.password;
-        if (!req.file || !password) return res.status(400).json({ error: "File and password required" });
+        if (!req.file) return res.status(400).json({ error: "No file uploaded" });
 
         await authorizeB2();
 
@@ -67,9 +65,6 @@ app.post("/upload", upload.single("file"), async (req, res) => {
             data: req.file.buffer,
         });
 
-        // Store the password for this file
-        filePasswords[fileName] = password;
-
         res.json({ fileName });
     } catch (err) {
         console.error("Upload error:", err.response?.data || err.message);
@@ -77,27 +72,22 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     }
 });
 
-// --- Download Endpoint ---
-app.post("/download", async (req, res) => {
+// --- Download endpoint ---
+app.get("/download", async (req, res) => {
     try {
-        const { fileName, password } = req.body;
-        if (!fileName || !password) return res.status(400).json({ error: "FileName and password required" });
-
-        const correctPassword = filePasswords[fileName];
-        if (!correctPassword || password !== correctPassword) {
-            return res.status(401).json({ error: "Incorrect password" });
-        }
+        const { fileName } = req.query;
+        if (!fileName) return res.status(400).json({ error: "fileName is required" });
 
         await authorizeB2();
 
+        // Temporary download URL (5 min)
         const downloadAuthResp = await b2.getDownloadAuthorization({
             bucketId,
             fileNamePrefix: fileName,
-            validDurationInSeconds: 60, // 1 min
+            validDurationInSeconds: 300,
         });
 
-        const downloadUrl = `https://f000.backblazeb2.com/file/${process.env.B2_BUCKET_NAME}/${encodeURIComponent(fileName)}?Authorization=${downloadAuthResp.data.authorizationToken}`;
-
+        const downloadUrl = `https://f005.backblazeb2.com/file/${process.env.B2_BUCKET_NAME}/${encodeURIComponent(fileName)}?Authorization=${downloadAuthResp.data.authorizationToken}`;
         res.json({ downloadUrl });
     } catch (err) {
         console.error("Download error:", err.response?.data || err.message);

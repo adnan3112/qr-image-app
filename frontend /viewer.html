@@ -10,7 +10,6 @@
         text-align: center;
         padding: 40px;
         background: #f9fafb;
-        color: #1e293b;
       }
       .card {
         display: inline-block;
@@ -64,8 +63,9 @@
       const params = new URLSearchParams(window.location.search);
       const fileName = params.get("file");
 
+      // Ask password from user
       async function checkPassword() {
-        const entered = document.getElementById("inputPwd").value;
+        const entered = document.getElementById("inputPwd").value.trim();
         const errorEl = document.getElementById("error");
         const imgEl = document.getElementById("protectedImg");
 
@@ -77,20 +77,18 @@
 
         try {
           const res = await fetch(
-            "https://qr-image-app.onrender.com/download",
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ fileName, password: entered }),
-            }
+            `https://qr-image-app.onrender.com/download?fileName=${encodeURIComponent(
+              fileName
+            )}`
           );
           const data = await res.json();
+
           if (data.downloadUrl) {
             imgEl.src = data.downloadUrl;
             imgEl.style.display = "block";
             errorEl.textContent = "";
           } else {
-            errorEl.textContent = data.error || "Failed to get image URL.";
+            errorEl.textContent = "Failed to get image URL.";
             imgEl.style.display = "none";
           }
         } catch (err) {
