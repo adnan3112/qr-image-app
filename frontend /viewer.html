@@ -135,8 +135,9 @@
       }
       #protectedImg {
         margin-top: 16px;
-        max-width: 100%;
-        max-height: 320px;
+        width: 100%; /* fills container width */
+        max-width: 600px; /* optional limit for large screens */
+        height: auto; /* keeps aspect ratio */
         border-radius: 12px;
         box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
         display: none;
@@ -144,7 +145,8 @@
         background: #fff;
         transition: box-shadow 0.2s;
       }
-      @media (max-width: 600px) {
+
+      @media (max-width: 480px) {
         h1 {
           margin-top: 35px;
           font-size: 1.28rem;
@@ -160,7 +162,8 @@
           font-size: 15px;
         }
         #protectedImg {
-          max-height: 160px;
+          max-width: 90%; /* a bit smaller than screen width */
+          max-height: 80vh; /* takes up 80% of viewport height */
         }
       }
     </style>
