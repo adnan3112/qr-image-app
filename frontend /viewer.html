@@ -30,8 +30,8 @@
       h1 {
         margin-bottom: 25px;
         font-size: 1.8rem;
+        text-align: center;
       }
-
       .card {
         background: #fff;
         padding: 30px;
@@ -40,7 +40,6 @@
         max-width: 420px;
         width: 100%;
         text-align: center;
-        margin-bottom: 20px;
       }
       body.dark .card {
         background: #1e293b;
@@ -108,12 +107,10 @@
       <input type="password" id="inputPwd" placeholder="Enter Password" />
       <button onclick="checkPassword()">Unlock</button>
       <p id="error"></p>
-      <img id="protectedImg" />
+      <img id="protectedImg" src="" />
     </div>
 
     <script>
-      const BACKEND_URL = "https://qr-image-app.onrender.com";
-
       function toggleTheme() {
         document.body.classList.toggle("dark");
       }
@@ -124,29 +121,30 @@
 
       async function checkPassword() {
         const entered = document.getElementById("inputPwd").value;
-        if (entered !== correctPwd) {
-          document.getElementById("error").textContent = "Incorrect password!";
-          return;
-        }
-
-        try {
-          const res = await fetch(
-            `${BACKEND_URL}/download?fileName=${encodeURIComponent(fileName)}`
-          );
-          const data = await res.json();
-          if (data.downloadUrl) {
-            const img = document.getElementById("protectedImg");
-            img.src = data.downloadUrl;
-            img.style.display = "block";
-            document.getElementById("error").textContent = "";
-          } else {
+        if (entered === correctPwd) {
+          try {
+            const res = await fetch(
+              `https://qr-image-app.onrender.com/download?fileName=${encodeURIComponent(
+                fileName
+              )}`
+            );
+            const data = await res.json();
+            if (data.downloadUrl) {
+              const img = document.getElementById("protectedImg");
+              img.src = data.downloadUrl;
+              img.style.display = "block";
+              document.getElementById("error").textContent = "";
+            } else {
+              document.getElementById("error").textContent =
+                "Failed to get image URL.";
+            }
+          } catch (err) {
+            console.error(err);
             document.getElementById("error").textContent =
-              "Failed to fetch image!";
+              "Error fetching image!";
           }
-        } catch (err) {
-          console.error(err);
-          document.getElementById("error").textContent =
-            "Error fetching image!";
+        } else {
+          document.getElementById("error").textContent = "Incorrect password!";
         }
       }
     </script>

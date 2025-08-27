@@ -8,11 +8,21 @@ require("dotenv").config(); // load credentials from .env
 const app = express();
 const port = process.env.PORT || 3000;
 
-// --- CORS setup for Render + Netlify frontend ---
+// --- CORS setup ---
+const allowedOrigins = [
+    "https://curious-jelly-a36572.netlify.app", // your Netlify frontend
+];
+
 app.use(cors({
-    origin: process.env.FRONTEND_URL || "https://curious-jelly-a36572.netlify.app",
+    origin: function (origin, callback) {
+        if (!origin) return callback(null, true); // allow curl/Postman
+        if (allowedOrigins.indexOf(origin) === -1) {
+            return callback(new Error("CORS not allowed from this origin"), false);
+        }
+        return callback(null, true);
+    },
     methods: ["GET", "POST", "OPTIONS"],
-    credentials: true
+    credentials: true,
 }));
 
 app.use(express.json());
@@ -26,7 +36,6 @@ const b2 = new B2({
     applicationKey: process.env.B2_APP_KEY,
 });
 const bucketId = process.env.B2_BUCKET_ID;
-const bucketName = process.env.B2_BUCKET_NAME;
 
 // --- Authorize function ---
 async function authorizeB2() {
@@ -47,6 +56,7 @@ app.post("/upload", upload.single("file"), async (req, res) => {
         await authorizeB2();
 
         const fileName = `${Date.now()}_${req.file.originalname}`;
+
         const uploadUrlResp = await b2.getUploadUrl({ bucketId });
 
         await b2.uploadFile({
@@ -71,13 +81,14 @@ app.get("/download", async (req, res) => {
 
         await authorizeB2();
 
+        // Generate temporary download URL (5 minutes)
         const downloadAuthResp = await b2.getDownloadAuthorization({
             bucketId,
             fileNamePrefix: fileName,
-            validDurationInSeconds: 300, // 5 minutes for better usability
+            validDurationInSeconds: 300,
         });
 
-        const downloadUrl = `https://f000.backblazeb2.com/file/${bucketName}/${encodeURIComponent(fileName)}?Authorization=${downloadAuthResp.data.authorizationToken}`;
+        const downloadUrl = `https://f000.backblazeb2.com/file/${process.env.B2_BUCKET_NAME}/${encodeURIComponent(fileName)}?Authorization=${downloadAuthResp.data.authorizationToken}`;
         res.json({ downloadUrl });
     } catch (err) {
         console.error("Download error:", err.response?.data || err.message);
