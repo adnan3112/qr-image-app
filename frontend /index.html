@@ -4,65 +4,305 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Secure QR Image Upload</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
     <style>
+      :root {
+        --bg: #f9fafb;
+        --text: #1e293b;
+        --card: #fff;
+        --accent: #2563eb;
+        --accent-dark: #1d4ed8;
+        --preview-bg: #f7faff; /* New variable */
+        --preview-border: #cbd5e1; /* New variable */
+      }
+      body.dark {
+        --bg: #0f172a;
+        --text: #f1f5f9;
+        --card: #1e293b;
+        --accent: #3b82f6;
+        --accent-dark: #2563eb;
+        --preview-bg: #2d3a4b; /* Dark mode preview background */
+        --preview-border: #4a5568; /* Dark mode preview border */
+      }
       body {
-        font-family: Arial, sans-serif;
+        font-family: "Inter", Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        margin: 0;
+        transition: background 0.3s, color 0.3s;
+      }
+      h1 {
+        margin-bottom: 20px;
+        color: var(--accent);
         text-align: center;
-        padding: 40px;
-        background: #f9fafb;
       }
-      input,
-      button {
-        padding: 12px;
-        margin: 10px 0;
-        width: 250px;
+      .card {
+        background: var(--card);
+        padding: 30px;
+        border-radius: 16px;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+        text-align: center;
+        width: 100%;
+        max-width: 420px;
+        box-sizing: border-box;
+      }
+      #dropZone {
+        border: 2px dashed var(--accent);
+        border-radius: 12px;
+        padding: 20px;
+        cursor: pointer;
+        margin-bottom: 15px;
+        background: rgba(37, 99, 235, 0.05);
+        transition: background 0.2s;
+        font-weight: 500;
+        color: var(--text);
+        font-size: 1.03rem;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      #dropZone:hover {
+        background: rgba(37, 99, 235, 0.1);
+      }
+      .preview {
+        display: flex;
+        align-items: center;
+        margin-bottom: 15px;
+        text-align: left;
+        position: relative;
+        width: 100%;
+        gap: 10px;
+        padding: 6px 44px 6px 6px;
+        background: var(--preview-bg); /* Use variable */
+        border-radius: 8px;
+        box-sizing: border-box;
+        border: 1px solid var(--preview-border); /* Use variable */
+        min-height: 52px;
+      }
+      .preview img {
+        width: 50px;
+        height: 50px;
+        border-radius: 6px;
+        object-fit: cover;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+        background: #fff;
+      }
+      .preview span {
+        font-size: 14px;
+        word-break: break-all;
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: var(--text); /* Ensure text color adapts */
+      }
+      .remove-btn {
+        position: absolute;
+        right: 10px; /* Adjusted */
+        top: 40%;
+        transform: translateY(-50%);
+        background: var(--accent);
+        border: none;
+        color: #fff;
+        width: 32px; /* Adjusted */
+        height: 32px; /* Adjusted */
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        transition: background 0.18s, transform 0.2s;
+      }
+      .remove-btn i {
+        font-size: 18px; /* Adjusted */
+        line-height: 1;
+        width: 18px; /* Adjusted */
+        height: 18px; /* Adjusted */
+        text-align: center;
+        display: block;
+        pointer-events: none;
+      }
+      .remove-btn:hover,
+      .remove-btn:focus {
+        background: var(--accent-dark);
+        color: #fff;
+        transform: translateY(-50%) scale(1.05); /* Added slight scale on hover */
+      }
+      .password-wrapper {
+        position: relative;
+        margin-bottom: 15px;
+        width: 100%;
+        display: flex;
+        align-items: center;
+      }
+      input[type="password"],
+      input[type="text"] {
+        width: 100%;
+        padding: 12px 40px 12px 12px;
         border-radius: 10px;
-        border: 1px solid #cbd5e1;
+        border: 1px solid var(--preview-border); /* Use variable for consistency */
+        background-color: var(
+          --card
+        ); /* Ensure input background changes in dark mode */
+        color: var(--text); /* Ensure input text color changes in dark mode */
+        font-size: 15px;
+        box-sizing: border-box;
+      }
+      .toggle-btn {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: pointer;
+        font-size: 18px;
+        color: var(--accent);
+        background: none;
+        border: none;
+        padding: 0;
+        line-height: 1;
+        z-index: 2;
       }
       button {
-        background: #2563eb;
+        width: 100%;
+        padding: 13px;
+        background: var(--accent);
         color: #fff;
         border: none;
-        cursor: pointer;
+        border-radius: 10px;
         font-weight: 600;
+        cursor: pointer;
+        margin-top: 8px;
+        font-size: 1.08rem;
+        transition: transform 0.2s, background 0.15s;
       }
       button:hover {
         background: #1d4ed8;
+        transform: scale(1.02);
       }
       #qrcode {
         margin-top: 20px;
+        display: flex;
+        justify-content: center;
       }
-      .card {
-        display: inline-block;
-        padding: 30px;
-        border-radius: 16px;
-        background: #fff;
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+      .theme-toggle {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: var(--card);
+        border-radius: 30px;
+        padding: 6px 12px;
+        cursor: pointer;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      }
+      @media (max-width: 500px) {
+        .card {
+          padding: 12px 3vw;
+          max-width: 98vw;
+        }
+        .preview img {
+          width: 32px;
+          height: 32px;
+        }
+        /* No need to adjust remove-btn here as it's now smaller by default */
       }
     </style>
   </head>
   <body>
+    <div class="theme-toggle" onclick="toggleTheme()">🌙 / ☀️</div>
     <h1>Secure QR Image Upload</h1>
     <div class="card">
-      <input type="file" id="imgFile" accept="image/*" /><br />
-      <input type="password" id="pwd" placeholder="Enter Password" /><br />
+      <div id="dropZone">📂 Drag & Drop Image or Click to Select</div>
+      <input type="file" id="imgFile" accept="image/*" style="display: none" />
+      <div id="previewContainer" style="display: none" class="preview">
+        <img id="preview" />
+        <span id="fileName"></span>
+        <button class="remove-btn" id="removeBtn" aria-label="Remove image">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="password-wrapper">
+        <input type="password" id="pwd" placeholder="Enter Password" />
+        <i id="togglePwd" class="fa-solid fa-eye toggle-btn"></i>
+      </div>
       <button onclick="uploadAndGenerate()">Upload & Generate QR</button>
       <div id="qrcode"></div>
     </div>
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script>
+      const dropZone = document.getElementById("dropZone");
+      const fileInput = document.getElementById("imgFile");
+      const previewContainer = document.getElementById("previewContainer");
+      const previewImg = document.getElementById("preview");
+      const fileNameEl = document.getElementById("fileName");
+      const removeBtn = document.getElementById("removeBtn");
+
+      dropZone.addEventListener("click", () => fileInput.click());
+      dropZone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dropZone.style.background = "rgba(37,99,235,0.15)";
+      });
+      dropZone.addEventListener("dragleave", () => {
+        dropZone.style.background = "rgba(37,99,235,0.05)";
+      });
+      dropZone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        fileInput.files = e.dataTransfer.files;
+        showPreview(fileInput.files[0]);
+      });
+      fileInput.addEventListener("change", () => {
+        if (fileInput.files[0]) showPreview(fileInput.files[0]);
+      });
+
+      removeBtn.addEventListener("click", () => {
+        fileInput.value = "";
+        previewContainer.style.display = "none";
+      });
+
+      function showPreview(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          previewImg.src = e.target.result;
+          fileNameEl.textContent = file.name;
+          previewContainer.style.display = "flex";
+        };
+        reader.readAsDataURL(file);
+      }
+
+      // Password toggle
+      const togglePwd = document.getElementById("togglePwd");
+      togglePwd.addEventListener("click", () => {
+        const pwdInput = document.getElementById("pwd");
+        if (pwdInput.type === "password") {
+          pwdInput.type = "text";
+          togglePwd.classList.replace("fa-eye", "fa-eye-slash");
+        } else {
+          pwdInput.type = "password";
+          togglePwd.classList.replace("fa-eye-slash", "fa-eye");
+        }
+      });
+
+      // Theme toggle
+      function toggleTheme() {
+        document.body.classList.toggle("dark");
+      }
+
       async function uploadAndGenerate() {
-        const file = document.getElementById("imgFile").files[0];
+        const file = fileInput.files[0];
         const password = document.getElementById("pwd").value.trim();
         if (!file || !password) {
           alert("Upload image and enter password!");
           return;
         }
-
         const formData = new FormData();
         formData.append("file", file);
-
         try {
           const res = await fetch("https://qr-image-app.onrender.com/upload", {
             method: "POST",
@@ -73,19 +313,18 @@
             alert(data.error);
             return;
           }
-
-          // QR only contains file name (no password)
           const qrLink = `${
             window.location.origin
           }/viewer.html?file=${encodeURIComponent(data.fileName)}`;
-
           document.getElementById("qrcode").innerHTML = "";
           new QRCode(document.getElementById("qrcode"), {
             text: qrLink,
             width: 220,
             height: 220,
           });
-          alert("QR Generated! Scan to unlock.");
+          alert(
+            "QR Generated! Scan to unlock.\nPassword is required to view the image."
+          );
         } catch (err) {
           console.error(err);
           alert("Upload failed!");
