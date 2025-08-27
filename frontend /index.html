@@ -6,95 +6,47 @@
     <title>Secure QR Image Upload</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
-      *,
-      *::before,
-      *::after {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
       body {
         font-family: "Inter", Arial, sans-serif;
         background: #f9fafb;
-        color: #1e293b;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        min-height: 100vh;
+        text-align: center;
         padding: 40px 20px;
       }
-      body.dark {
-        background: #0f172a;
-        color: #f1f5f9;
-      }
-
-      h1 {
-        margin-bottom: 25px;
-        font-size: 1.8rem;
-      }
-
       .card {
         background: #fff;
         padding: 30px;
         border-radius: 16px;
         box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
         max-width: 420px;
-        width: 100%;
-        text-align: center;
-        margin-bottom: 20px;
+        margin: auto;
       }
-      body.dark .card {
-        background: #1e293b;
-      }
-
       input,
       button {
         width: 100%;
         padding: 12px 14px;
         margin: 10px 0;
         border-radius: 10px;
-        font-size: 15px;
         border: 1px solid #cbd5e1;
       }
-      input:focus {
-        border-color: #2563eb;
-        outline: none;
-        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
-      }
-
       button {
         background: #2563eb;
         color: #fff;
         border: none;
         font-weight: 600;
         cursor: pointer;
-        transition: background 0.3s, transform 0.2s;
+        transition: 0.3s;
       }
       button:hover {
         background: #1d4ed8;
         transform: scale(1.03);
       }
-
       #qrcode {
         margin-top: 20px;
-      }
-
-      .toggle {
-        position: absolute;
-        top: 20px;
-        right: 20px;
-        background: #fff;
-        border-radius: 30px;
-        padding: 6px 12px;
-        cursor: pointer;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
       }
     </style>
   </head>
   <body>
-    <div class="toggle" onclick="toggleTheme()">🌙 / ☀️</div>
     <h1>Secure QR Image Upload</h1>
-
     <div class="card">
       <input type="file" id="imgFile" accept="image/*" />
       <input type="password" id="pwd" placeholder="Enter Password" />
@@ -103,33 +55,30 @@
     </div>
 
     <script>
-      const BACKEND_URL = "https://qr-image-app.onrender.com";
-
-      function toggleTheme() {
-        document.body.classList.toggle("dark");
-      }
-
       async function uploadAndGenerate() {
         const fileInput = document.getElementById("imgFile").files[0];
         const password = document.getElementById("pwd").value.trim();
-        if (!fileInput || !password)
-          return alert("Upload image and set password!");
+        if (!fileInput || !password) {
+          alert("Upload image and set password!");
+          return;
+        }
 
         const formData = new FormData();
         formData.append("file", fileInput);
 
         try {
-          const res = await fetch(`${BACKEND_URL}/upload`, {
+          const res = await fetch("https://qr-image-app.onrender.com/upload", {
             method: "POST",
             body: formData,
           });
           const data = await res.json();
-          if (data.error) return alert(data.error);
+          if (data.error) {
+            alert(data.error);
+            return;
+          }
 
           const fileName = data.fileName;
-          const qrLink = `${
-            window.location.origin
-          }/viewer.html?file=${encodeURIComponent(
+          const qrLink = `https://curious-jelly-a36572.netlify.app/viewer.html?fileName=${encodeURIComponent(
             fileName
           )}&pwd=${encodeURIComponent(password)}`;
 

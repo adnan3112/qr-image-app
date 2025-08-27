@@ -3,7 +3,7 @@ const express = require("express");
 const multer = require("multer");
 const B2 = require("backblaze-b2");
 const cors = require("cors");
-require("dotenv").config(); // load credentials from .env
+require("dotenv").config();
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -37,7 +37,7 @@ const b2 = new B2({
 });
 const bucketId = process.env.B2_BUCKET_ID;
 
-// --- Authorize function ---
+// --- Authorize B2 ---
 async function authorizeB2() {
     try {
         await b2.authorize();
@@ -58,7 +58,6 @@ app.post("/upload", upload.single("file"), async (req, res) => {
         const fileName = `${Date.now()}_${req.file.originalname}`;
 
         const uploadUrlResp = await b2.getUploadUrl({ bucketId });
-
         await b2.uploadFile({
             uploadUrl: uploadUrlResp.data.uploadUrl,
             uploadAuthToken: uploadUrlResp.data.authorizationToken,
@@ -81,15 +80,15 @@ app.get("/download", async (req, res) => {
 
         await authorizeB2();
 
-        // Generate temporary download URL (5 minutes)
-        const downloadAuthResp = await b2.getDownloadAuthorization({
-            bucketId,
-            fileNamePrefix: fileName,
-            validDurationInSeconds: 300,
-        });
+        // Get file info to fetch fileId
+        const listResp = await b2.listFileNames({ bucketId, startFileName: fileName, maxFileCount: 1 });
+        const file = listResp.data.files.find(f => f.fileName === fileName);
+        if (!file) return res.status(404).json({ error: "File not found" });
 
-        const downloadUrl = `https://f000.backblazeb2.com/file/${process.env.B2_BUCKET_NAME}/${encodeURIComponent(fileName)}?Authorization=${downloadAuthResp.data.authorizationToken}`;
-        res.json({ downloadUrl });
+        // Temporary download URL (private bucket)
+        const downloadResp = await b2.downloadFileById({ fileId: file.fileId });
+
+        res.json({ downloadUrl: downloadResp.data.downloadUrl });
     } catch (err) {
         console.error("Download error:", err.response?.data || err.message);
         res.status(500).json({ error: "Download URL generation failed" });
