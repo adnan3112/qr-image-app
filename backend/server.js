@@ -1,4 +1,3 @@
-// server.js
 const express = require("express");
 const multer = require("multer");
 const B2 = require("backblaze-b2");
@@ -10,7 +9,7 @@ const port = process.env.PORT || 3000;
 
 // --- CORS setup ---
 const allowedOrigins = [
-    "https://curious-jelly-a36572.netlify.app", // Netlify frontend
+    process.env.FRONTEND_URL,
     "http://127.0.0.1:5500" // optional local testing
 ];
 
@@ -37,19 +36,14 @@ const b2 = new B2({
     applicationKey: process.env.B2_APP_KEY
 });
 const bucketName = process.env.B2_BUCKET_NAME;
+const accountId = process.env.B2_ACCOUNT_ID;
 let bucketId;
 
-// --- Authorize and get bucket ---
+// --- Authorize B2 and get bucket ---
 async function authorizeB2() {
-    try {
-        await b2.authorize();
-    } catch (err) {
-        console.error("B2 authorization failed:", err);
-        throw new Error("B2 authorization failed: " + err.message);
-    }
-
+    await b2.authorize();
     if (!bucketId) {
-        const bucketsResp = await b2.listBuckets({ accountId: process.env.B2_ACCOUNT_ID });
+        const bucketsResp = await b2.listBuckets({ accountId });
         const bucket = bucketsResp.data.buckets.find(b => b.bucketName === bucketName);
         if (!bucket) throw new Error("Bucket not found: " + bucketName);
         bucketId = bucket.bucketId;
@@ -68,7 +62,7 @@ app.post("/upload", upload.single("file"), async (req, res) => {
         const fileName = `${Date.now()}_${req.file.originalname}`;
         const uploadUrlResp = await b2.getUploadUrl({ bucketId });
 
-        const uploadResp = await b2.uploadFile({
+        await b2.uploadFile({
             uploadUrl: uploadUrlResp.data.uploadUrl,
             uploadAuthToken: uploadUrlResp.data.authorizationToken,
             fileName,
