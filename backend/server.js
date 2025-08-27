@@ -10,7 +10,7 @@ const port = process.env.PORT || 3000;
 
 // --- CORS setup ---
 const allowedOrigins = [
-    process.env.FRONTEND_URL || "https://curious-jelly-a36572.netlify.app",
+    process.env.FRONTEND_URL || "https://sage-tiramisu-9b5552.netlify.app",
 ];
 
 app.use(cors({
