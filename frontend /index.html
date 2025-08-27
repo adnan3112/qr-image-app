@@ -8,37 +8,27 @@
     <style>
       body {
         font-family: "Inter", Arial, sans-serif;
-        background: #f9fafb;
         text-align: center;
         padding: 40px 20px;
-      }
-      .card {
-        background: #fff;
-        padding: 30px;
-        border-radius: 16px;
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
-        max-width: 420px;
-        margin: auto;
+        background: #f9fafb;
+        color: #1e293b;
       }
       input,
       button {
-        width: 100%;
-        padding: 12px 14px;
+        padding: 12px;
         margin: 10px 0;
         border-radius: 10px;
         border: 1px solid #cbd5e1;
+        width: 250px;
       }
       button {
         background: #2563eb;
         color: #fff;
         border: none;
-        font-weight: 600;
         cursor: pointer;
-        transition: 0.3s;
       }
       button:hover {
         background: #1d4ed8;
-        transform: scale(1.03);
       }
       #qrcode {
         margin-top: 20px;
@@ -47,12 +37,10 @@
   </head>
   <body>
     <h1>Secure QR Image Upload</h1>
-    <div class="card">
-      <input type="file" id="imgFile" accept="image/*" />
-      <input type="password" id="pwd" placeholder="Enter Password" />
-      <button onclick="uploadAndGenerate()">Upload & Generate QR</button>
-      <div id="qrcode"></div>
-    </div>
+    <input type="file" id="imgFile" accept="image/*" /><br />
+    <input type="password" id="pwd" placeholder="Enter Password" /><br />
+    <button onclick="uploadAndGenerate()">Upload & Generate QR</button>
+    <div id="qrcode"></div>
 
     <script>
       async function uploadAndGenerate() {
@@ -78,7 +66,9 @@
           }
 
           const fileName = data.fileName;
-          const qrLink = `https://curious-jelly-a36572.netlify.app/viewer.html?fileName=${encodeURIComponent(
+          const qrLink = `${
+            window.location.origin
+          }/viewer.html?file=${encodeURIComponent(
             fileName
           )}&pwd=${encodeURIComponent(password)}`;
 

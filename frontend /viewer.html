@@ -7,23 +7,23 @@
     <style>
       body {
         font-family: "Inter", Arial, sans-serif;
-        background: #f9fafb;
         text-align: center;
         padding: 40px 20px;
+        background: #f9fafb;
+        color: #1e293b;
       }
       .card {
-        background: #fff;
+        display: inline-block;
         padding: 30px;
         border-radius: 16px;
+        background: #fff;
         box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
-        max-width: 420px;
-        margin: auto;
       }
       input,
       button {
-        width: 100%;
-        padding: 12px 14px;
+        padding: 12px;
         margin: 10px 0;
+        width: 200px;
         border-radius: 10px;
         border: 1px solid #cbd5e1;
       }
@@ -31,16 +31,13 @@
         background: #2563eb;
         color: #fff;
         border: none;
-        font-weight: 600;
         cursor: pointer;
-        transition: 0.3s;
       }
       button:hover {
         background: #1d4ed8;
-        transform: scale(1.03);
       }
       #protectedImg {
-        max-width: 100%;
+        max-width: 80%;
         margin-top: 20px;
         display: none;
         border-radius: 12px;
@@ -49,14 +46,13 @@
       #error {
         color: #dc2626;
         font-weight: 600;
-        margin-top: 10px;
       }
     </style>
   </head>
   <body>
     <h1>Unlock Image</h1>
     <div class="card">
-      <input type="password" id="inputPwd" placeholder="Enter Password" />
+      <input type="password" id="inputPwd" placeholder="Enter Password" /><br />
       <button onclick="checkPassword()">Unlock</button>
       <p id="error"></p>
       <img id="protectedImg" src="" />
@@ -64,7 +60,7 @@
 
     <script>
       const params = new URLSearchParams(window.location.search);
-      const fileName = params.get("fileName");
+      const fileName = params.get("file");
       const correctPwd = params.get("pwd");
 
       async function checkPassword() {
@@ -88,8 +84,195 @@
             }
           } catch (err) {
             console.error(err);
-            document.getElementById("error").textContent =
-              "Error fetching image!";
+            document.getElementById("error").textContent = "Error fetching image!";
+          }
+        } else {
+          document.getElementById("error").textContent = "Incorrect password!";
+        }
+      }
+    </script>
+  </body>
+</html><!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Unlock Image</title>
+    <style>
+      body {
+        font-family: "Inter", Arial, sans-serif;
+        text-align: center;
+        padding: 40px 20px;
+        background: #f9fafb;
+        color: #1e293b;
+      }
+      .card {
+        display: inline-block;
+        padding: 30px;
+        border-radius: 16px;
+        background: #fff;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+      }
+      input,
+      button {
+        padding: 12px;
+        margin: 10px 0;
+        width: 200px;
+        border-radius: 10px;
+        border: 1px solid #cbd5e1;
+      }
+      button {
+        background: #2563eb;
+        color: #fff;
+        border: none;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #1d4ed8;
+      }
+      #protectedImg {
+        max-width: 80%;
+        margin-top: 20px;
+        display: none;
+        border-radius: 12px;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+      }
+      #error {
+        color: #dc2626;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Unlock Image</h1>
+    <div class="card">
+      <input type="password" id="inputPwd" placeholder="Enter Password" /><br />
+      <button onclick="checkPassword()">Unlock</button>
+      <p id="error"></p>
+      <img id="protectedImg" src="" />
+    </div>
+
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const fileName = params.get("file");
+      const correctPwd = params.get("pwd");
+
+      async function checkPassword() {
+        const entered = document.getElementById("inputPwd").value;
+        if (entered === correctPwd) {
+          try {
+            const res = await fetch(
+              `https://qr-image-app.onrender.com/download?fileName=${encodeURIComponent(
+                fileName
+              )}`
+            );
+            const data = await res.json();
+            if (data.downloadUrl) {
+              const img = document.getElementById("protectedImg");
+              img.src = data.downloadUrl;
+              img.style.display = "block";
+              document.getElementById("error").textContent = "";
+            } else {
+              document.getElementById("error").textContent =
+                "Failed to get image URL.";
+            }
+          } catch (err) {
+            console.error(err);
+            document.getElementById("error").textContent = "Error fetching image!";
+          }
+        } else {
+          document.getElementById("error").textContent = "Incorrect password!";
+        }
+      }
+    </script>
+  </body>
+</html><!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Unlock Image</title>
+    <style>
+      body {
+        font-family: "Inter", Arial, sans-serif;
+        text-align: center;
+        padding: 40px 20px;
+        background: #f9fafb;
+        color: #1e293b;
+      }
+      .card {
+        display: inline-block;
+        padding: 30px;
+        border-radius: 16px;
+        background: #fff;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+      }
+      input,
+      button {
+        padding: 12px;
+        margin: 10px 0;
+        width: 200px;
+        border-radius: 10px;
+        border: 1px solid #cbd5e1;
+      }
+      button {
+        background: #2563eb;
+        color: #fff;
+        border: none;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #1d4ed8;
+      }
+      #protectedImg {
+        max-width: 80%;
+        margin-top: 20px;
+        display: none;
+        border-radius: 12px;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+      }
+      #error {
+        color: #dc2626;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Unlock Image</h1>
+    <div class="card">
+      <input type="password" id="inputPwd" placeholder="Enter Password" /><br />
+      <button onclick="checkPassword()">Unlock</button>
+      <p id="error"></p>
+      <img id="protectedImg" src="" />
+    </div>
+
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const fileName = params.get("file");
+      const correctPwd = params.get("pwd");
+
+      async function checkPassword() {
+        const entered = document.getElementById("inputPwd").value;
+        if (entered === correctPwd) {
+          try {
+            const res = await fetch(
+              `https://qr-image-app.onrender.com/download?fileName=${encodeURIComponent(
+                fileName
+              )}`
+            );
+            const data = await res.json();
+            if (data.downloadUrl) {
+              const img = document.getElementById("protectedImg");
+              img.src = data.downloadUrl;
+              img.style.display = "block";
+              document.getElementById("error").textContent = "";
+            } else {
+              document.getElementById("error").textContent =
+                "Failed to get image URL.";
+            }
+          } catch (err) {
+            console.error(err);
+            document.getElementById("error").textContent = "Error fetching image!";
           }
         } else {
           document.getElementById("error").textContent = "Incorrect password!";
