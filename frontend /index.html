@@ -304,7 +304,7 @@
         const formData = new FormData();
         formData.append("file", file);
         try {
-          const res = await fetch("https://qr-image-website.onrender.com/upload", {
+          const res = await fetch("https://qr-image-app.onrender.com/upload", {
             method: "POST",
             body: formData,
           });
