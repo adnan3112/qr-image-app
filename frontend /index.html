@@ -13,18 +13,11 @@
         background: #f9fafb;
         color: #1e293b;
       }
-      .card {
-        display: inline-block;
-        padding: 30px;
-        border-radius: 16px;
-        background: #fff;
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
-      }
       input,
       button {
         padding: 12px;
         margin: 10px 0;
-        width: 200px;
+        width: 220px;
         border-radius: 10px;
         border: 1px solid #cbd5e1;
       }
@@ -45,16 +38,12 @@
   </head>
   <body>
     <h1>Secure QR Image Upload</h1>
-    <div class="card">
-      <input type="file" id="imgFile" accept="image/*" /><br />
-      <input type="password" id="pwd" placeholder="Enter Password" /><br />
-      <button onclick="uploadAndGenerate()">Upload & Generate QR</button>
-      <div id="qrcode"></div>
-    </div>
+    <input type="file" id="imgFile" accept="image/*" /><br />
+    <input type="password" id="pwd" placeholder="Enter Password" /><br />
+    <button onclick="uploadAndGenerate()">Upload & Generate QR</button>
+    <div id="qrcode"></div>
 
     <script>
-      let currentPassword = ""; // store password separately
-
       async function uploadAndGenerate() {
         const fileInput = document.getElementById("imgFile").files[0];
         const password = document.getElementById("pwd").value.trim();
@@ -62,41 +51,31 @@
           alert("Upload image and set password!");
           return;
         }
-        currentPassword = password; // save password for later
 
         const formData = new FormData();
         formData.append("file", fileInput);
+        formData.append("password", password);
 
-        try {
-          const res = await fetch("https://qr-image-app.onrender.com/upload", {
-            method: "POST",
-            body: formData,
-          });
-          const data = await res.json();
-          if (data.error) {
-            alert(data.error);
-            return;
-          }
-
-          const fileName = data.fileName;
-
-          // QR link contains only the file name, not password
-          const qrLink = `${
-            window.location.origin
-          }/viewer.html?file=${encodeURIComponent(fileName)}`;
-
-          document.getElementById("qrcode").innerHTML = "";
-          new QRCode(document.getElementById("qrcode"), {
-            text: qrLink,
-            width: 220,
-            height: 220,
-          });
-
-          alert("QR Generated! Scan to unlock.");
-        } catch (err) {
-          console.error(err);
-          alert("Upload failed!");
+        const res = await fetch("https://qr-image-app.onrender.com/upload", {
+          method: "POST",
+          body: formData,
+        });
+        const data = await res.json();
+        if (data.error) {
+          alert(data.error);
+          return;
         }
+
+        const qrLink = `${
+          window.location.origin
+        }/viewer.html?file=${encodeURIComponent(data.fileName)}`;
+        document.getElementById("qrcode").innerHTML = "";
+        new QRCode(document.getElementById("qrcode"), {
+          text: qrLink,
+          width: 220,
+          height: 220,
+        });
+        alert("QR Generated! Scan to unlock.");
       }
     </script>
   </body>
