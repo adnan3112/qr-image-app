@@ -9,27 +9,19 @@
       rel="stylesheet"
     />
     <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-        transition: all 0.3s;
-      }
       body {
-        font-family: Roboto, sans-serif;
+        font-family: "Roboto", sans-serif;
         background: linear-gradient(135deg, #e0f7fa, #f3e5f5);
         display: flex;
         justify-content: center;
         align-items: center;
         min-height: 100vh;
         padding: 20px;
-        transition: background 0.5s;
       }
       body.dark {
         background: linear-gradient(135deg, #121212, #1f1f1f);
         color: #fff;
       }
-
       .container {
         background: #fff;
         max-width: 500px;
@@ -38,13 +30,11 @@
         box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
         padding: 30px;
         text-align: center;
-        transition: all 0.3s;
       }
       body.dark .container {
         background: #1e1e1e;
         box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
       }
-
       h2 {
         font-size: 1.8rem;
         margin-bottom: 20px;
@@ -62,7 +52,6 @@
         color: #fff;
         border: 1px solid #555;
       }
-
       button {
         background-color: #6200ea;
         color: #fff;
@@ -77,7 +66,6 @@
         background-color: #3700b3;
         transform: scale(1.05);
       }
-
       #error {
         color: #e53935;
         margin-top: 15px;
@@ -92,7 +80,6 @@
         transition: opacity 0.5s;
         display: none;
       }
-
       .theme-toggle {
         position: absolute;
         top: 20px;
@@ -108,22 +95,6 @@
         background-color: #6200ea;
         color: #fff;
       }
-
-      @media (max-width: 600px) {
-        .container {
-          padding: 20px;
-        }
-        h2 {
-          font-size: 1.5rem;
-        }
-        input[type="password"] {
-          font-size: 0.95rem;
-        }
-        button {
-          font-size: 0.95rem;
-          padding: 10px 20px;
-        }
-      }
     </style>
   </head>
   <body>
@@ -135,7 +106,6 @@
       <p id="error"></p>
       <img id="img" />
     </div>
-
     <script>
       function toggleTheme() {
         document.body.classList.toggle("dark");
@@ -180,15 +150,6 @@
             "Failed to load image!";
         }
       }
-
-      // Auto-fill password from QR if available
-      window.addEventListener("load", () => {
-        const params = new URLSearchParams(window.location.hash.slice(1));
-        const passwordFromUrl = params.get("password");
-        if (passwordFromUrl) {
-          document.getElementById("pwd").value = passwordFromUrl;
-        }
-      });
     </script>
   </body>
 </html>

@@ -15,7 +15,7 @@ const allowedOrigins = [
 
 app.use(cors({
     origin: function (origin, callback) {
-        if (!origin) return callback(null, true); // allow curl/Postman
+        if (!origin) return callback(null, true);
         if (allowedOrigins.indexOf(origin) === -1) {
             return callback(new Error("CORS not allowed from this origin"), false);
         }
@@ -36,14 +36,19 @@ const b2 = new B2({
     applicationKey: process.env.B2_APP_KEY
 });
 const bucketName = process.env.B2_BUCKET_NAME;
-const accountId = process.env.B2_ACCOUNT_ID;
 let bucketId;
 
-// --- Authorize B2 and get bucket ---
+// --- Authorize and get bucket ---
 async function authorizeB2() {
-    await b2.authorize();
+    try {
+        await b2.authorize();
+    } catch (err) {
+        console.error("B2 authorization failed:", err);
+        throw new Error("B2 authorization failed: " + err.message);
+    }
+
     if (!bucketId) {
-        const bucketsResp = await b2.listBuckets({ accountId });
+        const bucketsResp = await b2.listBuckets({ accountId: process.env.B2_ACCOUNT_ID });
         const bucket = bucketsResp.data.buckets.find(b => b.bucketName === bucketName);
         if (!bucket) throw new Error("Bucket not found: " + bucketName);
         bucketId = bucket.bucketId;
@@ -69,7 +74,7 @@ app.post("/upload", upload.single("file"), async (req, res) => {
             data: req.file.buffer
         });
 
-        res.json({ fileName });
+        res.json({ fileName, password });
     } catch (err) {
         console.error("Upload error:", err);
         res.status(500).json({ error: "Upload failed", details: err.message });
@@ -83,7 +88,16 @@ app.get("/download", async (req, res) => {
 
     try {
         await authorizeB2();
-        const downloadUrl = `https://f002.backblazeb2.com/file/${bucketName}/${encodeURIComponent(fileName)}`;
+
+        // Generate a temporary download URL (valid 1 hour)
+        const downloadResp = await b2.getDownloadAuthorization({
+            bucketId,
+            fileNamePrefix: fileName,
+            validDurationInSeconds: 3600
+        });
+
+        const downloadUrl = `https://f002.backblazeb2.com/file/${bucketName}/${encodeURIComponent(fileName)}?Authorization=${downloadResp.data.authorizationToken}`;
+
         res.json({ downloadUrl });
     } catch (err) {
         console.error("Download error:", err);
