@@ -3,28 +3,24 @@ const express = require("express");
 const multer = require("multer");
 const B2 = require("backblaze-b2");
 const cors = require("cors");
-require("dotenv").config(); // Load credentials from .env
+require("dotenv").config();
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-// --- CORS setup ---
+// Allow frontend origin
 const allowedOrigins = [
     "https://curious-jelly-a36572.netlify.app", // your Netlify frontend
 ];
-app.use(
-    cors({
-        origin: function (origin, callback) {
-            if (!origin) return callback(null, true); // allow Postman/curl
-            if (allowedOrigins.indexOf(origin) === -1) {
-                return callback(new Error("CORS not allowed from this origin"), false);
-            }
-            return callback(null, true);
-        },
-        methods: ["GET", "POST", "OPTIONS"],
-        credentials: true,
-    })
-);
+
+app.use(cors({
+    origin: function (origin, callback) {
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.indexOf(origin) === -1) return callback(new Error("CORS not allowed"), false);
+        return callback(null, true);
+    },
+    methods: ["GET", "POST", "OPTIONS"],
+}));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -37,19 +33,14 @@ const b2 = new B2({
     applicationKey: process.env.B2_APP_KEY,
 });
 const bucketId = process.env.B2_BUCKET_ID;
+const bucketName = process.env.B2_BUCKET_NAME;
 
-// --- Authorize function ---
+// --- Authorize B2 ---
 async function authorizeB2() {
-    try {
-        await b2.authorize();
-        console.log("B2 Authorized successfully");
-    } catch (err) {
-        console.error("B2 Authorization failed:", err.response?.data || err.message);
-        throw err;
-    }
+    await b2.authorize();
 }
 
-// --- Upload endpoint ---
+// --- Upload ---
 app.post("/upload", upload.single("file"), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: "No file uploaded" });
@@ -74,25 +65,27 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     }
 });
 
-// --- Download endpoint ---
+// --- Download ---
 app.get("/download", async (req, res) => {
     try {
         const { fileName } = req.query;
-        if (!fileName) return res.status(400).json({ error: "fileName is required" });
+        if (!fileName) return res.status(400).json({ error: "fileName required" });
 
         await authorizeB2();
 
-        // Get file info by name
-        const listResp = await b2.listFileNames({ bucketId, startFileName: fileName, maxFileCount: 1 });
-        const file = listResp.data.files.find((f) => f.fileName === fileName);
-        if (!file) return res.status(404).json({ error: "File not found" });
+        // Generate temporary download URL for private file
+        const downloadAuth = await b2.getDownloadAuthorization({
+            bucketId,
+            fileNamePrefix: fileName,
+            validDurationInSeconds: 300, // link valid for 5 minutes
+        });
 
-        // Use Native URL with fileId
-        const downloadUrl = `https://f005.backblazeb2.com/b2api/v1/b2_download_file_by_id?fileId=${file.fileId}`;
+        const downloadUrl = `https://f000.backblazeb2.com/file/${bucketName}/${encodeURIComponent(fileName)}?Authorization=${downloadAuth.data.authorizationToken}`;
+
         res.json({ downloadUrl });
     } catch (err) {
         console.error("Download error:", err.response?.data || err.message);
-        res.status(500).json({ error: "Download URL generation failed" });
+        res.status(500).json({ error: "Failed to generate download URL" });
     }
 });
 
